@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "id": "p_demo_detektiv",
+  "meta": {
+    "title": "Der Fall der gestohlenen Torte",
+    "language": "de",
+    "createdAt": "2026-01-01T00:00:00.000Z"
+  },
+  "theme": {
+    "preset": "detektiv",
+    "tokens": {},
+    "fontScale": 1,
+    "iconSeed": "🕵️"
+  },
+  "flow": [
+    {
+      "id": "s_start",
+      "type": "start",
+      "eyebrow": "Akte 07 – streng geheim",
+      "headline": "Wer stahl die Geburtstagstorte?",
+      "sub": "Kommissar, wir brauchen Sie! Die Torte ist verschwunden. Fünf Verdächtige, jede Menge Spuren – lösen Sie den Fall.",
+      "cta": "Ermittlung aufnehmen"
+    },
+    {
+      "id": "s_over",
+      "type": "overview",
+      "headline": "Wählt ein Rätsel",
+      "mode": "free",
+      "finalCta": "Zum großen Finale"
+    },
+    {
+      "id": "s_final",
+      "type": "final",
+      "headline": "Fall gelöst!",
+      "text": "Kombiniert man alle Spuren, gibt es nur einen Täter. Hervorragende Arbeit, Kommissar.",
+      "revealLabel": "Der Name des Täters",
+      "reveal": "Onkel Theo",
+      "video": {
+        "kind": "none"
+      }
+    }
+  ],
+  "puzzles": [
+    {
+      "id": "q_verdacht",
+      "nr": 1,
+      "type": "choice",
+      "title": "Der erste Verdacht",
+      "prompt": "Wer hatte Schokolade an den Fingern?",
+      "hint": "Schaut euch die Hände aller Verdächtigen genau an.",
+      "options": [
+        "Tante Rosa",
+        "Onkel Theo",
+        "Nachbar Kurt",
+        "die Katze",
+        "der Postbote"
+      ],
+      "answer": "Onkel Theo"
+    },
+    {
+      "id": "q_zeugen",
+      "nr": 2,
+      "type": "truefalse",
+      "title": "Die Zeugenaussagen",
+      "prompt": "Welche Aussage stimmt mit den Beweisen überein?",
+      "hint": "Vergleicht jede Aussage mit dem, was ihr schon wisst.",
+      "statements": [
+        {
+          "text": "Die Torte stand um 15 Uhr noch auf dem Tisch.",
+          "value": true
+        },
+        {
+          "text": "Alle Fenster waren von innen verriegelt.",
+          "value": true
+        },
+        {
+          "text": "Der Hund hat die ganze Zeit gebellt.",
+          "value": false
+        },
+        {
+          "text": "Es gab Schokoladen-Fußspuren zur Terrasse.",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "q_spuren",
+      "nr": 3,
+      "type": "sort2",
+      "title": "Spuren am Tatort sichern",
+      "prompt": "Welche Spur wurde am Tatort gefunden – und welche nicht?",
+      "hint": "Nur was wirklich in der Akte steht, gehört zum Tatort.",
+      "zones": [
+        "Am Tatort gefunden",
+        "Gehört nicht dazu"
+      ],
+      "objects": [
+        {
+          "label": "Tortenkrümel",
+          "emoji": "🍰",
+          "zone": 0
+        },
+        {
+          "label": "Schokofleck",
+          "emoji": "🟤",
+          "zone": 0
+        },
+        {
+          "label": "Fußabdruck Gr. 45",
+          "emoji": "👞",
+          "zone": 0
+        },
+        {
+          "label": "Taucherbrille",
+          "emoji": "🥽",
+          "zone": 1
+        },
+        {
+          "label": "Gabel",
+          "emoji": "🍴",
+          "zone": 0
+        },
+        {
+          "label": "Skischuh",
+          "emoji": "🎿",
+          "zone": 1
+        }
+      ]
+    },
+    {
+      "id": "q_beweise",
+      "nr": 4,
+      "type": "assign",
+      "title": "Beweisstücke nummerieren",
+      "prompt": "Neben jedem Beweisstück im Raum klebt eine Nummer. Tragt sie ein.",
+      "hint": "Sucht die kleinen Nummernschilder an den Asservaten.",
+      "items": [
+        {
+          "image": "img_lupe",
+          "caption": "Lupe",
+          "value": "3"
+        },
+        {
+          "image": "img_schuh",
+          "caption": "Schuhabdruck",
+          "value": "8"
+        },
+        {
+          "image": "img_schluessel",
+          "caption": "Ersatzschlüssel",
+          "value": "1"
+        },
+        {
+          "image": "img_brief",
+          "caption": "Drohbrief",
+          "value": "6"
+        },
+        {
+          "image": "img_uhr",
+          "caption": "Stehengebliebene Uhr",
+          "value": "4"
+        }
+      ]
+    },
+    {
+      "id": "q_safe",
+      "nr": 5,
+      "type": "text",
+      "title": "Das Codewort im Safe",
+      "prompt": "Im Safe liegt das Geständnis – aber er ist mit einem Wort gesichert.",
+      "hint": "Was hat der Täter gestohlen? Ein Wort, Mehrzahl.",
+      "answer": "Torte",
+      "caseSensitive": false,
+      "placeholder": "Codewort eintippen"
+    }
+  ],
+  "assets": {
+    "img_lupe": {
+      "mime": "image/svg+xml",
+      "w": 140,
+      "h": 140,
+      "data": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNDAiIGhlaWdodD0iMTQwIiB2aWV3Qm94PSIwIDAgMTQwIDE0MCI+PHJlY3Qgd2lkdGg9IjE0MCIgaGVpZ2h0PSIxNDAiIHJ4PSIxOCIgZmlsbD0iIzFjMjIzMSIvPjx0ZXh0IHg9IjcwIiB5PSI3MCIgZm9udC1zaXplPSI4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiPvCflI08L3RleHQ+PC9zdmc+",
+      "bytes": 240
+    },
+    "img_schuh": {
+      "mime": "image/svg+xml",
+      "w": 140,
+      "h": 140,
+      "data": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNDAiIGhlaWdodD0iMTQwIiB2aWV3Qm94PSIwIDAgMTQwIDE0MCI+PHJlY3Qgd2lkdGg9IjE0MCIgaGVpZ2h0PSIxNDAiIHJ4PSIxOCIgZmlsbD0iIzFjMjIzMSIvPjx0ZXh0IHg9IjcwIiB5PSI3MCIgZm9udC1zaXplPSI4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiPvCfkZ48L3RleHQ+PC9zdmc+",
+      "bytes": 240
+    },
+    "img_schluessel": {
+      "mime": "image/svg+xml",
+      "w": 140,
+      "h": 140,
+      "data": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNDAiIGhlaWdodD0iMTQwIiB2aWV3Qm94PSIwIDAgMTQwIDE0MCI+PHJlY3Qgd2lkdGg9IjE0MCIgaGVpZ2h0PSIxNDAiIHJ4PSIxOCIgZmlsbD0iIzFjMjIzMSIvPjx0ZXh0IHg9IjcwIiB5PSI3MCIgZm9udC1zaXplPSI4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiPvCflJE8L3RleHQ+PC9zdmc+",
+      "bytes": 240
+    },
+    "img_brief": {
+      "mime": "image/svg+xml",
+      "w": 140,
+      "h": 140,
+      "data": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNDAiIGhlaWdodD0iMTQwIiB2aWV3Qm94PSIwIDAgMTQwIDE0MCI+PHJlY3Qgd2lkdGg9IjE0MCIgaGVpZ2h0PSIxNDAiIHJ4PSIxOCIgZmlsbD0iIzFjMjIzMSIvPjx0ZXh0IHg9IjcwIiB5PSI3MCIgZm9udC1zaXplPSI4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiPuKcie+4jzwvdGV4dD48L3N2Zz4=",
+      "bytes": 241
+    },
+    "img_uhr": {
+      "mime": "image/svg+xml",
+      "w": 140,
+      "h": 140,
+      "data": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNDAiIGhlaWdodD0iMTQwIiB2aWV3Qm94PSIwIDAgMTQwIDE0MCI+PHJlY3Qgd2lkdGg9IjE0MCIgaGVpZ2h0PSIxNDAiIHJ4PSIxOCIgZmlsbD0iIzFjMjIzMSIvPjx0ZXh0IHg9IjcwIiB5PSI3MCIgZm9udC1zaXplPSI4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiPuKPsDwvdGV4dD48L3N2Zz4=",
+      "bytes": 240
+    }
+  },
+  "parent": {
+    "pin": "1337",
+    "allowSkip": true,
+    "allowMarkSolved": true
+  },
+  "branding": {
+    "license": null
+  }
+}
