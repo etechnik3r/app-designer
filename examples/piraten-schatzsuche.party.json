@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "id": "p_demo_piraten",
+  "meta": {
+    "title": "Piraten-Schatzsuche",
+    "language": "de",
+    "createdAt": "2026-01-01T00:00:00.000Z"
+  },
+  "theme": {
+    "preset": "pirat",
+    "tokens": {},
+    "fontScale": 1,
+    "iconSeed": "🏴‍☠️"
+  },
+  "flow": [
+    {
+      "id": "s_start",
+      "type": "start",
+      "eyebrow": "Logbuch der Black Pearl",
+      "headline": "Auf großer Schatzsuche",
+      "sub": "Ahoi, Crew! Käpt'n Krähenauge hat seinen Schatz versteckt. Nur wer alle Prüfungen besteht, findet ihn.",
+      "cta": "Anker lichten"
+    },
+    {
+      "id": "s_over",
+      "type": "overview",
+      "headline": "Wählt ein Rätsel",
+      "mode": "free",
+      "finalCta": "Zum großen Finale"
+    },
+    {
+      "id": "s_final",
+      "type": "final",
+      "headline": "Land in Sicht – Schatz gehoben!",
+      "text": "Ihr habt jede Prüfung gemeistert. Der Käpt'n wäre stolz auf euch.",
+      "revealLabel": "Das Losungswort zur Schatztruhe",
+      "reveal": "GOLDDUKAT",
+      "video": {
+        "kind": "none"
+      }
+    }
+  ],
+  "puzzles": [
+    {
+      "id": "q_flagge",
+      "nr": 1,
+      "type": "choice",
+      "title": "Die richtige Flagge",
+      "prompt": "Welche Flagge gehört zu einem echten Freibeuter?",
+      "hint": "Totenkopf mit gekreuzten Knochen – schaut genau hin.",
+      "options": [
+        "Rotes Kreuz",
+        "Totenkopf mit Knochen",
+        "Blauer Stern",
+        "Grüner Anker"
+      ],
+      "answer": "Totenkopf mit Knochen"
+    },
+    {
+      "id": "q_losung",
+      "nr": 2,
+      "type": "text",
+      "title": "Das Losungswort",
+      "prompt": "Nur ein Wort öffnet das Hafentor.",
+      "hint": "Womit bezahlten Piraten? Ein glänzendes Geldstück (9 Buchstaben).",
+      "answer": "Golddukat",
+      "caseSensitive": false,
+      "placeholder": "Wort eintippen"
+    },
+    {
+      "id": "q_kurs",
+      "nr": 3,
+      "type": "order",
+      "title": "Der Kurs zur Schatzinsel",
+      "prompt": "Bringt die Wegmarken in die richtige Reihenfolge – vom Start bis zum Schatz.",
+      "hint": "Erst raus aus dem Hafen, ganz zum Schluss die Höhle.",
+      "items": [
+        "Hafen von Tortuga",
+        "Leuchtturm",
+        "Haifisch-Riff",
+        "Totenkopf-Bucht",
+        "Schatzhöhle"
+      ]
+    },
+    {
+      "id": "q_seemannsgarn",
+      "nr": 4,
+      "type": "truefalse",
+      "title": "Seemannsgarn – wahr oder erfunden?",
+      "prompt": "Ein echter Seebär erkennt jede Lüge.",
+      "hint": "Denkt an das, was ihr über Schiffe und das Meer wisst.",
+      "statements": [
+        {
+          "text": "Ein Kompass zeigt immer nach Norden.",
+          "value": true
+        },
+        {
+          "text": "Piraten fuhren mit Dampfmotoren.",
+          "value": false
+        },
+        {
+          "text": "Ein Papagei kann Wörter nachplappern.",
+          "value": true
+        },
+        {
+          "text": "Salzwasser kann man gut trinken.",
+          "value": false
+        },
+        {
+          "text": "Ebbe und Flut kommen von Sonne und Mond.",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "q_schloss",
+      "nr": 5,
+      "type": "number",
+      "title": "Das Zahlenschloss der Truhe",
+      "prompt": "Drei Ziffern öffnen das Schloss.",
+      "hint": "Anzahl der Masten (3), Augen des Käpt'ns (2), gekreuzte Knochen (2).",
+      "answer": "322",
+      "maxLength": 3
+    }
+  ],
+  "assets": {},
+  "parent": {
+    "pin": "1337",
+    "allowSkip": true,
+    "allowMarkSolved": true
+  },
+  "branding": {
+    "license": null
+  }
+}

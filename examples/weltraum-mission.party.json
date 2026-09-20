@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "id": "p_demo_weltraum",
+  "meta": {
+    "title": "Sternenmission Andromeda",
+    "language": "de",
+    "createdAt": "2026-01-01T00:00:00.000Z"
+  },
+  "theme": {
+    "preset": "weltraum",
+    "tokens": {},
+    "fontScale": 1,
+    "iconSeed": "🚀"
+  },
+  "flow": [
+    {
+      "id": "s_start",
+      "type": "start",
+      "eyebrow": "Bordcomputer ORION-7",
+      "headline": "Notruf aus dem All",
+      "sub": "Achtung, Astronauten! Die Raumstation Andromeda treibt manövrierunfähig. Repariert die Systeme – Schritt für Schritt.",
+      "cta": "Triebwerke zünden"
+    },
+    {
+      "id": "s_over",
+      "type": "overview",
+      "headline": "Wählt ein Rätsel",
+      "mode": "linear",
+      "finalCta": "Zum großen Finale"
+    },
+    {
+      "id": "s_final",
+      "type": "final",
+      "headline": "Andockmanöver erfolgreich!",
+      "text": "Alle Systeme wieder online. Die Crew ist gerettet – dank euch.",
+      "revealLabel": "Der Freigabecode der Schleuse",
+      "reveal": "ORION",
+      "video": {
+        "kind": "none"
+      }
+    }
+  ],
+  "puzzles": [
+    {
+      "id": "q_start",
+      "nr": 1,
+      "type": "number",
+      "title": "Startcode eingeben",
+      "prompt": "Ohne den Startcode zündet kein Triebwerk.",
+      "hint": "Countdown rückwärts von 5 – aber nur die ungeraden Zahlen: 5, 3, 1.",
+      "answer": "531",
+      "maxLength": 3
+    },
+    {
+      "id": "q_planeten",
+      "nr": 2,
+      "type": "order",
+      "title": "Planeten nach Sonnenabstand",
+      "prompt": "Sortiert die Planeten von der Sonne nach außen.",
+      "hint": "Merksatz: Mein Vater erklärt mir jeden Sonntag …",
+      "items": [
+        "Merkur",
+        "Venus",
+        "Erde",
+        "Mars",
+        "Jupiter"
+      ]
+    },
+    {
+      "id": "q_schwer",
+      "nr": 3,
+      "type": "sort2",
+      "title": "Schwebt es oder nicht?",
+      "prompt": "In der Schwerelosigkeit schwebt fast alles – aber was gehört an Bord und was nach draußen ins Vakuum?",
+      "hint": "Was braucht die Crew zum Überleben, was ist nur Weltraumschrott?",
+      "zones": [
+        "Gehört an Bord",
+        "Ab ins All damit"
+      ],
+      "objects": [
+        {
+          "label": "Sauerstofftank",
+          "emoji": "🫧",
+          "zone": 0
+        },
+        {
+          "label": "Kaputter Satellit",
+          "emoji": "📡",
+          "zone": 1
+        },
+        {
+          "label": "Trinkwasser",
+          "emoji": "💧",
+          "zone": 0
+        },
+        {
+          "label": "Weltraumschrott",
+          "emoji": "🪨",
+          "zone": 1
+        },
+        {
+          "label": "Sternenkarte",
+          "emoji": "🗺️",
+          "zone": 0
+        },
+        {
+          "label": "Leere Batterie",
+          "emoji": "🔋",
+          "zone": 1
+        },
+        {
+          "label": "Notfall-Funkgerät",
+          "emoji": "📻",
+          "zone": 0
+        }
+      ]
+    },
+    {
+      "id": "q_stern",
+      "nr": 4,
+      "type": "choice",
+      "title": "Welcher Stern leuchtet am hellsten?",
+      "prompt": "Peilt den hellsten Fixstern am Nachthimmel an.",
+      "hint": "Er steht im Sternbild Großer Hund und heißt auch 'Hundsstern'.",
+      "options": [
+        "Polarstern",
+        "Sirius",
+        "Beteigeuze",
+        "Wega",
+        "Aldebaran"
+      ],
+      "answer": "Sirius"
+    },
+    {
+      "id": "q_dock",
+      "nr": 5,
+      "type": "truefalse",
+      "title": "Systemcheck vor dem Andocken",
+      "prompt": "Bestätigt jede Anzeige des Bordcomputers.",
+      "hint": "Nur echte Weltraum-Fakten sind richtig.",
+      "statements": [
+        {
+          "text": "Im Weltall ist es völlig lautlos.",
+          "value": true
+        },
+        {
+          "text": "Die Sonne ist ein Planet.",
+          "value": false
+        },
+        {
+          "text": "Auf dem Mond ist man leichter als auf der Erde.",
+          "value": true
+        },
+        {
+          "text": "Ein Jahr auf der Venus ist kürzer als ein Tag dort.",
+          "value": true
+        }
+      ]
+    }
+  ],
+  "assets": {},
+  "parent": {
+    "pin": "1337",
+    "allowSkip": true,
+    "allowMarkSolved": true
+  },
+  "branding": {
+    "license": null
+  }
+}

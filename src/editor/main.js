@@ -23,6 +23,11 @@ import { buildSingleFile, buildZip, download, safeFileName, pruneUnusedAssets } 
 import { emptyParty, migrate, validateParty, estimateSize, fmtBytes } from "../shared/schema.js";
 import { verifyLicense, FREE_PUZZLE_LIMIT } from "../shared/license.js";
 import { loadDemoParty } from "./demo.js";
+import { DEMOS, loadDemo } from "./demos.js";
+
+/* Die Einstellungen sind mit einer PIN geschuetzt. Sie sind bewusst
+   knapp gehalten - hier wachsen spaeter die weiteren Schalter. */
+const SETTINGS_PIN = "0000";
 
 /* Vor dem echten Verkauf durch den eigenen Stripe-Zahlungslink
    ersetzen; die Party-Kennung faehrt als client_reference_id mit,
@@ -183,6 +188,93 @@ async function projectsDialog() {
   await modal({ title: "Projekte", body, wide: true, actions: [{ label: "Schließen", value: null }] });
 }
 
+/* ---------------- Einstellungen (PIN) ---------------- */
+
+/* Eigenes Overlay statt des Standard-Dialogs: so kann nach richtiger
+   PIN ohne Schliessen auf das Menue umgeschaltet werden, und die
+   Eingabetaste bestaetigt die PIN.                                  */
+function settingsDialog() {
+  const overlay = h("div", { class: "modal" });
+  const card = h("div", { class: "modal-card", style: { width: "min(680px, 100%)" } });
+  overlay.appendChild(card);
+
+  const close = () => { overlay.remove(); document.removeEventListener("keydown", onKey); };
+  const onKey = (event) => { if (event.key === "Escape") close(); };
+
+  /* --- Schritt 1: PIN --- */
+  const pinInput = h("input", {
+    type: "password", inputmode: "numeric", maxlength: "4", autocomplete: "off",
+    placeholder: "••••",
+    style: { fontSize: "22px", letterSpacing: "10px", textAlign: "center", width: "140px" },
+  });
+  const pinMsg = h("div", { class: "help" });
+
+  const submitPin = () => {
+    if (pinInput.value.trim() === SETTINGS_PIN) { showMenu(); return; }
+    pinMsg.textContent = "Falsche PIN.";
+    pinInput.value = "";
+    pinInput.focus();
+  };
+  pinInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") { event.preventDefault(); submitPin(); }
+  });
+
+  const pinStep = h("div", null,
+    h("h2", { text: "⚙ Einstellungen" }),
+    h("p", { text: "Dieser Bereich ist mit einer PIN geschützt." }),
+    h("div", { class: "field" }, h("label", { text: "PIN eingeben" }), pinInput, pinMsg),
+    h("div", { class: "modal-actions" },
+      h("button", { class: "tbtn", type: "button", text: "Abbrechen", onclick: close }),
+      h("button", { class: "tbtn tbtn--primary", type: "button", text: "Weiter", onclick: submitPin }),
+    ),
+  );
+
+  /* --- Schritt 2: Menue mit den Demo-Anwendungen --- */
+  const menuStep = h("div", { hidden: true });
+
+  const buildMenu = () => {
+    clear(menuStep);
+    menuStep.append(
+      h("h2", { text: "⚙ Einstellungen" }),
+      h("div", { class: "group-label", text: "Demo-Anwendungen" }),
+      h("p", { class: "help",
+        text: "Eine fertige Beispiel-Party laden — zum Ausprobieren, was der Baukasten kann. Sie wird als neues Projekt angelegt; bestehende Projekte bleiben erhalten." }),
+    );
+
+    for (const demo of DEMOS) {
+      menuStep.appendChild(h("div", { class: "item item--demo" },
+        h("span", { class: "ico", style: { fontSize: "22px" }, text: demo.icon }),
+        h("span", { class: "label" },
+          h("div", { text: `${demo.name}` }),
+          h("div", { class: "type", text: demo.tagline }),
+          h("div", { class: "type", text: `Rätseltypen: ${demo.covers}` })),
+        h("button", { class: "tbtn tbtn--primary", type: "button", text: "Laden",
+          onclick: async () => {
+            close();
+            try {
+              await newProject(await loadDemo(demo.id));
+              toast(`Demo „${demo.name}" geladen.`);
+            } catch (err) {
+              toast(`Demo nicht ladbar: ${err.message}`, true);
+            }
+          } }),
+      ));
+    }
+
+    menuStep.appendChild(h("div", { class: "modal-actions" },
+      h("button", { class: "tbtn tbtn--primary", type: "button", text: "Schließen", onclick: close }),
+    ));
+  };
+
+  const showMenu = () => { pinStep.hidden = true; menuStep.hidden = false; buildMenu(); };
+
+  card.append(pinStep, menuStep);
+  overlay.addEventListener("click", (event) => { if (event.target === overlay) close(); });
+  document.addEventListener("keydown", onKey);
+  document.body.appendChild(overlay);
+  pinInput.focus();
+}
+
 function exportPartyFile() {
   const name = safeFileName(store.cfg.meta.title);
   download(`${name}.party.json`, JSON.stringify(store.cfg, null, 2), "application/json");
@@ -339,6 +431,7 @@ function wireToolbar() {
 
   el("btnUndo").addEventListener("click", () => undo());
   el("btnRedo").addEventListener("click", () => redo());
+  el("btnSettings").addEventListener("click", settingsDialog);
   el("btnProjects").addEventListener("click", projectsDialog);
   el("btnCheck").addEventListener("click", () => checkParty());
   el("btnExport").addEventListener("click", exportDialog);
