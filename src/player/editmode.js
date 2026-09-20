@@ -39,6 +39,9 @@ function ensureOverlay() {
 
 function paintOverlay() {
   const box = ensureOverlay();
+  /* Ausserhalb des Bearbeitungsmodus gibt es keine Auswahl - der
+     gelbe Rahmen darf sonst in die Testen-Ansicht hineinragen. */
+  if (P.mode !== "edit") { box.hidden = true; return; }
   const el = selectedPath ? document.querySelector(`[data-bind="${cssEscape(selectedPath)}"]`) : null;
   if (!el) { box.hidden = true; return; }
   const rect = el.getBoundingClientRect();
@@ -110,7 +113,17 @@ function onClickCapture(event) {
   event.stopPropagation();
 
   const el = target.closest?.("[data-bind]");
-  if (!el) { select(null); send({ type: "click", path: null }); return; }
+  if (!el) {
+    select(null);
+    send({ type: "click", path: null });
+    /* Spiel-Knopf (Pruefen, Zurueck, Ziffern ...) im Bearbeiten-Modus
+       angetippt: die tun hier bewusst nichts. Statt stumm zu bleiben,
+       den Editor bitten, auf den Testen-Modus hinzuweisen. */
+    if (target.closest?.(".btn, .key, .tf, .chip, .num-pad, .puzzle-card")) {
+      send({ type: "hint" });
+    }
+    return;
+  }
 
   const path = el.dataset.bind;
   select(path, { startEditing: true });
@@ -154,6 +167,9 @@ function onMessage(event) {
     }
     case "mode":
       stopEditing();
+      /* Beim Wechsel in den Testen-Modus die Auswahl aufloesen,
+         damit kein gelber Rahmen im Spiel stehen bleibt. */
+      if (msg.mode !== "edit") { selectedPath = null; if (overlay) overlay.hidden = true; }
       setMode(msg.mode);
       break;
     case "goto":

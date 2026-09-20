@@ -9,9 +9,10 @@ export default {
   summary: "Mehrere Antworten stehen zur Wahl, eine ist richtig.",
 
   fields: [
-    { key: "options", type: "list", label: "Antwortmöglichkeiten",
-      help: "Eine Möglichkeit pro Zeile. Mindestens zwei." },
-    { key: "answer", type: "optionpick", label: "Richtige Antwort", from: "options" },
+    { key: "options", type: "list", label: "Antwort-Schaltflächen",
+      help: "Jede Zeile wird zu einer Antwort zum Antippen. Mindestens zwei — eine neue Zeile ergibt eine neue Schaltfläche." },
+    { key: "answer", type: "optionpick", label: "Richtige Antwort", from: "options",
+      help: "Diese Antwort zählt beim Antippen von „Prüfen“ als richtig." },
   ],
 
   defaults: () => ({ options: ["Antwort A", "Antwort B", "Antwort C"], answer: "Antwort A" }),

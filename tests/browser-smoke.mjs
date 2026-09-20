@@ -43,6 +43,16 @@ const fail = (m) => { problems.push(m); console.log("  ✗", m); };
 
 const browser = await chromium.launch();
 
+/* Der Editor zeigt beim allerersten Start je Browser einen einmaligen
+   Wegweiser. Vor der eigentlichen Bedienung wegklicken. */
+async function dismissWelcome(p) {
+  const welcome = p.locator(".modal-card", { hasText: "Willkommen im Party-Baukasten" });
+  if (await welcome.count()) {
+    await p.locator(".modal-card .tbtn", { hasText: "Los geht" }).click();
+    await p.waitForTimeout(200);
+  }
+}
+
 /* ---------------------------------------------------------------- */
 console.log("\n1) Editor bedienen");
 const page = await browser.newPage({ viewport: { width: 1500, height: 950 } });
@@ -60,6 +70,7 @@ page.on("response", (r) => {
 
 await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
 await page.waitForTimeout(1500);
+await dismissWelcome(page);
 const frame = () => page.frameLocator("#preview");
 
 (await page.locator("#flowstrip .item").count()) === 11
@@ -173,6 +184,7 @@ const page2 = await browser.newPage({ viewport: { width: 1500, height: 950 } });
 page2.on("pageerror", (e) => fail(`Skriptfehler: ${e.message}`));
 await page2.goto(`${BASE}/`, { waitUntil: "networkidle" });
 await page2.waitForTimeout(1500);
+await dismissWelcome(page2);
 
 await page2.locator("#btnCheck").click();
 await page2.waitForTimeout(400);
@@ -233,6 +245,7 @@ const page3 = await browser.newPage({ viewport: { width: 1500, height: 950 } });
 page3.on("pageerror", (e) => fail(`Skriptfehler: ${e.message}`));
 await page3.goto(`${BASE}/`, { waitUntil: "networkidle" });
 await page3.waitForTimeout(1500);
+await dismissWelcome(page3);
 
 await page3.locator("#btnProjects").click();
 await page3.waitForTimeout(400);
