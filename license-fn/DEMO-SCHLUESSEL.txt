@@ -1,0 +1,20 @@
+DEMO-SCHLÜSSELPAAR — NICHT FÜR DEN ECHTEN VERKAUF
+=================================================
+
+Dieses Paar liegt nur bei, damit der Freischalt-Weg ohne eigene
+Einrichtung durchprobiert werden kann. Der private Schlüssel steht
+hier im Klartext und ist damit für jeden lesbar, der den Ordner hat.
+
+Öffentlich (steht in src/shared/license.js, roh, 32 Byte, Base64):
+  YKGumZJcPlreMIBcSwE6yiCqjpR0pWgWtfO+CDZC/oA=
+
+Privat (PKCS#8, DER, Base64):
+  MC4CAQAwBQYDK2VwBCIEIBz19rRprzbYVPUktA/yb18Y90lOpOsrJS8B8QRbyNUa
+
+VOR DEM ERSTEN VERKAUF:
+  1) node tools/keygen.mjs
+  2) den ausgegebenen öffentlichen Schlüssel in
+     src/shared/license.js als PUBLIC_KEY_B64 eintragen
+  3) den privaten Schlüssel als Secret LICENSE_PRIVATE_KEY im
+     Cloudflare Worker hinterlegen (niemals ins Repository)
+  4) diese Datei löschen

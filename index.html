@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Party-Baukasten</title>
+<meta name="color-scheme" content="dark">
+<link rel="stylesheet" href="src/editor/editor.css">
+</head>
+<body>
+
+<header class="toolbar">
+  <span class="brand" title="Party-Baukasten">🎉 Baukasten</span>
+  <input class="title" id="partyTitle" type="text" aria-label="Name der Party">
+
+  <span class="seg">
+    <button class="tbtn is-on" id="modeEdit" type="button" title="Inhalte anklicken und ändern">✎ Bearbeiten</button>
+    <button class="tbtn" id="modePlay" type="button" title="So spielt es sich für die Kinder">▶ Testen</button>
+  </span>
+
+  <span class="seg">
+    <button class="tbtn is-on" id="devTablet" type="button" title="Tablet quer">▭ Tablet</button>
+    <button class="tbtn" id="devPhone" type="button" title="Handy">▯ Handy</button>
+    <button class="tbtn" id="devFull" type="button" title="Fenster füllen">⛶ Voll</button>
+  </span>
+
+  <button class="tbtn" id="btnUndo" type="button" title="Rückgängig (Strg+Z)">↶</button>
+  <button class="tbtn" id="btnRedo" type="button" title="Wiederherstellen (Strg+Umschalt+Z)">↷</button>
+
+  <span class="spacer"></span>
+
+  <span class="saved" id="savedState">—</span>
+  <button class="tbtn" id="btnProjects" type="button">Projekte</button>
+  <button class="tbtn" id="btnCheck" type="button">Prüfen</button>
+  <button class="tbtn tbtn--primary" id="btnExport" type="button">Export</button>
+  <button class="tbtn tbtn--buy" id="btnBuy" type="button">2 € freischalten</button>
+</header>
+
+<div class="workspace">
+  <aside class="pane pane--left">
+    <div class="pane-title">Ablauf</div>
+    <div class="pane-body" id="flowstrip"></div>
+  </aside>
+
+  <main class="preview">
+    <div class="device device--tablet" id="device">
+      <iframe id="preview" title="Vorschau" src="src/player/index.html?mode=edit"></iframe>
+    </div>
+  </main>
+
+  <aside class="pane pane--right">
+    <div class="pane-title" style="display:flex; gap:6px; align-items:center;">
+      <span class="seg">
+        <button class="tbtn is-on" id="tabContent" type="button">Inhalt</button>
+        <button class="tbtn" id="tabDesign" type="button">Design</button>
+      </span>
+    </div>
+    <div class="pane-body" id="rightPane"></div>
+  </aside>
+</div>
+
+<script type="module" src="src/editor/main.js"></script>
+</body>
+</html>

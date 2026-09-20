@@ -1,0 +1,367 @@
+/* ============================================================
+   Player-Stylesheet.
+   Alle Farben kommen aus Custom-Properties, die der Player zur
+   Laufzeit aus dem Theme setzt. Die Werte hier sind nur der
+   Notnagel, falls kein Theme geladen wurde.
+   Keine externen Schriften, kein Framework: der Export muss auch
+   ohne Netz auf einem Tablet im Keller laufen.
+   ============================================================ */
+:root {
+  --bg: #171540;
+  --grid: rgba(150, 140, 255, .07);
+  --panel: #221f57;
+  --panel-2: #2c286e;
+  --edge: rgba(170, 160, 255, .18);
+  --ink: #f4f2ff;
+  --muted: #b3aee0;
+  --primary: #8b6cff;
+  --on-primary: #ffffff;
+  --info: #5b9dff;
+  --amber: #ffb62e;
+  --on-amber: #3a2600;
+  --ok: #37d67a;
+  --on-ok: #053021;
+  --no: #ff6a5a;
+  --radius: 20px;
+  --font-scale: 1;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; margin: 0; }
+
+body {
+  font-family: var(--sans);
+  font-size: calc(17px * var(--font-scale));
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 255, 255, .06), transparent 45%),
+    var(--bg);
+  overflow: hidden;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+body::before {
+  content: "";
+  position: fixed; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* #app braucht eine eigene Hoehe: ohne sie faellt .stage auf 0
+   zusammen, die absolut gesetzten Bildschirme bekommen keine Hoehe
+   und der zentrierte Inhalt haengt halb ueber dem oberen Rand.     */
+#app { position: relative; height: 100%; }
+.stage { position: relative; height: 100%; }
+
+.screen {
+  position: absolute; inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  padding: clamp(14px, 3vh, 30px) clamp(14px, 4vw, 44px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.screen.is-active { display: flex; }
+.screen--center { justify-content: center; }
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: .78em;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+h1, h2 { margin: 0; line-height: 1.15; text-align: center; }
+h1 { font-size: clamp(26px, 5vw, 46px); }
+h2 { font-size: clamp(20px, 3.4vw, 30px); }
+.sub { margin: 0; color: var(--muted); text-align: center; max-width: 42ch; }
+
+/* ---------- Knöpfe ---------- */
+.btn {
+  font: inherit;
+  font-weight: 650;
+  color: var(--ink);
+  background: var(--panel-2);
+  border: 2px solid var(--edge);
+  border-radius: var(--radius);
+  padding: 14px 22px;
+  min-height: 56px;              /* Kinderfinger: nie kleiner */
+  cursor: pointer;
+  transition: transform .08s ease, filter .12s ease;
+}
+.btn:active { transform: scale(.97); }
+.btn:focus-visible { outline: 3px solid var(--info); outline-offset: 2px; }
+.btn--primary { background: var(--primary); color: var(--on-primary); border-color: transparent; }
+.btn--amber { background: var(--amber); color: var(--on-amber); border-color: transparent; }
+.btn--ok { background: var(--ok); color: var(--on-ok); border-color: transparent; }
+.btn--ghost { background: transparent; }
+.btn--big { font-size: 1.2em; padding: 20px 34px; min-height: 68px; }
+.btn[disabled] { opacity: .35; cursor: default; }
+
+.btn.opt {
+  width: 100%;
+  text-align: left;
+}
+.btn.opt.is-picked {
+  border-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 22%, var(--panel-2));
+}
+
+.row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+/* ---------- Kopfzeile ---------- */
+.topbar {
+  position: absolute; top: 10px; left: 12px; right: 12px;
+  display: flex; align-items: center; gap: 10px;
+  z-index: 40; pointer-events: none;
+}
+.topbar > * { pointer-events: auto; }
+.topbar .spacer { flex: 1; }
+.icon-btn {
+  width: 46px; height: 46px; min-height: 46px;
+  display: grid; place-items: center;
+  font-size: 20px; padding: 0;
+  border-radius: 50%;
+  background: var(--panel); border: 2px solid var(--edge); color: var(--ink);
+  cursor: pointer;
+}
+
+/* ---------- Übersicht ---------- */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+  gap: 14px;
+  width: 100%;
+  max-width: 900px;
+}
+.puzzle-card {
+  display: flex; align-items: center; gap: 12px;
+  text-align: left;
+  background: var(--panel);
+  border: 2px solid var(--edge);
+  border-radius: var(--radius);
+  padding: 16px;
+  min-height: 76px;
+  color: inherit; font: inherit; font-weight: 650;
+  cursor: pointer;
+}
+.puzzle-card .nr {
+  flex: 0 0 auto;
+  width: 38px; height: 38px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--panel-2);
+  font-family: var(--mono);
+}
+.puzzle-card.is-solved { background: color-mix(in srgb, var(--ok) 20%, var(--panel)); border-color: var(--ok); }
+.puzzle-card.is-solved .nr { background: var(--ok); color: var(--on-ok); }
+.puzzle-card.is-locked { opacity: .45; cursor: default; }
+.progress { color: var(--muted); font-family: var(--mono); font-size: .85em; }
+
+/* ---------- Rätselbildschirm ---------- */
+.puzzle-wrap { width: 100%; max-width: 760px; display: flex; flex-direction: column; gap: 14px; }
+.prompt { margin: 0; text-align: center; color: var(--muted); }
+.hint-box {
+  background: var(--panel); border: 2px dashed var(--edge);
+  border-radius: var(--radius); padding: 12px 16px; color: var(--muted);
+}
+.feedback { min-height: 30px; text-align: center; font-weight: 700; font-family: var(--mono); }
+.feedback.is-ok { color: var(--ok); }
+.feedback.is-no { color: var(--no); }
+.feedback.shake { animation: shake .4s; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+
+/* ---------- Rätseltyp: Auswahl ---------- */
+.p-choice { display: flex; flex-direction: column; gap: 10px; }
+
+/* ---------- Rätseltyp: Zahlencode ---------- */
+.p-number { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.num-display {
+  font-family: var(--mono);
+  font-size: clamp(30px, 7vw, 52px);
+  letter-spacing: .18em;
+  background: var(--panel);
+  border: 2px solid var(--edge);
+  border-radius: var(--radius);
+  padding: 8px 24px;
+  min-width: 5ch; text-align: center;
+}
+.num-pad { display: grid; grid-template-columns: repeat(3, 84px); gap: 10px; }
+.key { min-height: 64px; padding: 0; font-size: 1.3em; font-family: var(--mono); }
+.key--soft { background: var(--panel); color: var(--muted); }
+
+/* ---------- Rätseltyp: Wort ---------- */
+.p-text { display: flex; justify-content: center; }
+.text-input {
+  font: inherit; font-size: 1.3em; text-align: center;
+  color: var(--ink); background: var(--panel);
+  border: 2px solid var(--edge); border-radius: var(--radius);
+  padding: 14px 18px; width: min(420px, 100%);
+  user-select: text;
+}
+
+/* ---------- Rätseltyp: Zuordnung ---------- */
+.p-assign { display: flex; flex-direction: column; gap: 10px; }
+.assign-row {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--panel); border: 2px solid var(--edge);
+  border-radius: var(--radius); padding: 10px 14px;
+}
+.assign-img { width: 58px; height: 58px; object-fit: contain; flex: 0 0 auto; border-radius: 10px; }
+.assign-img--empty { display: grid; place-items: center; font-size: 26px; background: var(--panel-2); }
+.assign-caption { flex: 1; color: var(--muted); }
+.assign-input {
+  font: inherit; font-family: var(--mono); font-size: 1.3em; text-align: center;
+  width: 4.5ch; padding: 10px 4px;
+  color: var(--ink); background: var(--panel-2);
+  border: 2px solid var(--edge); border-radius: 12px;
+  user-select: text;
+}
+
+/* ---------- Rätseltyp: Richtig/Falsch ---------- */
+.p-truefalse { display: flex; flex-direction: column; gap: 10px; }
+.tf-row {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--panel); border: 2px solid var(--edge);
+  border-radius: var(--radius); padding: 12px 14px;
+}
+.tf-text { flex: 1; min-width: 180px; }
+.tf-btns { display: flex; gap: 8px; }
+.tf { min-height: 48px; padding: 10px 16px; }
+.tf--yes.is-picked { background: var(--ok); color: var(--on-ok); border-color: transparent; }
+.tf--no.is-picked { background: var(--no); color: #2a0500; border-color: transparent; }
+
+/* ---------- Rätseltyp: Reihenfolge ---------- */
+.p-order { display: flex; flex-direction: column; gap: 8px; }
+.order-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--panel); border: 2px solid var(--edge);
+  border-radius: var(--radius); padding: 8px 12px;
+}
+.order-pos {
+  width: 34px; height: 34px; flex: 0 0 auto;
+  display: grid; place-items: center; border-radius: 50%;
+  background: var(--panel-2); font-family: var(--mono);
+}
+.order-text { flex: 1; }
+.order-row .key { min-height: 44px; width: 52px; font-size: 1em; }
+
+/* ---------- Rätseltyp: Einsortieren ---------- */
+.p-sort2 { display: flex; flex-direction: column; gap: 12px; }
+.sort-hint { color: var(--muted); text-align: center; font-size: .88em; }
+.sort-pool, .sort-zone-body {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  min-height: 84px; padding: 10px;
+  background: var(--panel); border: 2px dashed var(--edge);
+  border-radius: var(--radius);
+  align-content: flex-start;
+}
+.sort-zones { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sort-zone { display: flex; flex-direction: column; gap: 6px; }
+.sort-zone-title { text-align: center; font-weight: 700; }
+.sort-pool.is-over, .sort-zone.is-over .sort-zone-body {
+  border-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 14%, var(--panel));
+}
+.chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  font: inherit; font-weight: 650; color: var(--ink);
+  background: var(--panel-2); border: 2px solid var(--edge);
+  border-radius: 999px; padding: 10px 16px; min-height: 48px;
+  cursor: grab; touch-action: none;
+}
+.chip.is-selected { border-color: var(--amber); background: color-mix(in srgb, var(--amber) 22%, var(--panel-2)); }
+.chip.is-dragging { opacity: .3; }
+.chip-emoji { font-size: 1.25em; }
+.chip--ghost {
+  position: fixed; z-index: 999; pointer-events: none;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .45);
+  transform: scale(1.04);
+}
+
+/* ---------- Video ---------- */
+.video-wrap { width: 100%; max-width: 880px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+video.party-video { width: 100%; max-height: 62vh; border-radius: var(--radius); background: #000; }
+.video-missing {
+  width: 100%; padding: 30px; text-align: center;
+  background: var(--panel); border: 2px dashed var(--edge); border-radius: var(--radius);
+  color: var(--muted);
+}
+
+/* ---------- Abschluss ---------- */
+.reveal {
+  font-family: var(--mono);
+  font-size: clamp(30px, 7vw, 58px);
+  letter-spacing: .1em;
+  color: var(--amber);
+  text-align: center;
+}
+
+/* ---------- Eltern-Konsole ---------- */
+.sheet {
+  position: fixed; inset: 0; z-index: 60;
+  display: grid; place-items: center;
+  background: rgba(8, 6, 26, .72);
+  padding: 16px;
+}
+.sheet[hidden] { display: none; }
+.sheet-card {
+  width: min(460px, 100%); max-height: 88vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--panel); border: 2px solid var(--edge);
+  border-radius: var(--radius); padding: 20px;
+}
+.sheet-title { margin: 0; font-size: 1.3em; text-align: center; }
+.sheet-sep { color: var(--muted); font-size: .8em; text-transform: uppercase; letter-spacing: .12em; margin-top: 8px; }
+.pin-dots { display: flex; gap: 14px; justify-content: center; margin: 6px 0; }
+.pin-dots i { width: 15px; height: 15px; border-radius: 50%; border: 2px solid var(--edge); display: block; }
+.pin-dots i.on { background: var(--info); border-color: var(--info); }
+.pin-msg { min-height: 20px; color: var(--no); font-family: var(--mono); font-size: .85em; text-align: center; }
+.pinpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.opt-note { color: var(--muted); font-size: .85em; margin: 0; }
+
+/* ---------- Wasserzeichen ---------- */
+.badge {
+  position: fixed; right: 10px; bottom: 8px; z-index: 50;
+  font-size: 11px; letter-spacing: .04em;
+  color: var(--ink); opacity: .55;
+  pointer-events: none;                 /* Kinder sollen nicht wegtippen */
+  font-family: var(--sans);
+}
+.badge--hero {
+  position: static; opacity: .75; font-size: .9em; text-align: center;
+  padding-top: 6px;
+}
+
+/* ---------- Bearbeitungsmodus ---------- */
+body.mode-edit .chip { cursor: pointer; }
+body.mode-edit [data-bind]:hover { outline: 2px dashed var(--info); outline-offset: 2px; }
+body.mode-edit [contenteditable="true"] {
+  outline: 2px solid var(--amber); outline-offset: 2px;
+  user-select: text; cursor: text;
+}
+.sel-overlay {
+  position: fixed; z-index: 55; pointer-events: none;
+  border: 2px solid var(--amber);
+  border-radius: 8px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, .04);
+}
+.sel-overlay[hidden] { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

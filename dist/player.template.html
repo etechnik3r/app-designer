@@ -1,0 +1,2372 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Rätsel-Party</title>
+<meta name="theme-color" content="#171540">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+/* ============================================================
+   Player-Stylesheet.
+   Alle Farben kommen aus Custom-Properties, die der Player zur
+   Laufzeit aus dem Theme setzt. Die Werte hier sind nur der
+   Notnagel, falls kein Theme geladen wurde.
+   Keine externen Schriften, kein Framework: der Export muss auch
+   ohne Netz auf einem Tablet im Keller laufen.
+   ============================================================ */
+:root {
+  --bg: #171540;
+  --grid: rgba(150, 140, 255, .07);
+  --panel: #221f57;
+  --panel-2: #2c286e;
+  --edge: rgba(170, 160, 255, .18);
+  --ink: #f4f2ff;
+  --muted: #b3aee0;
+  --primary: #8b6cff;
+  --on-primary: #ffffff;
+  --info: #5b9dff;
+  --amber: #ffb62e;
+  --on-amber: #3a2600;
+  --ok: #37d67a;
+  --on-ok: #053021;
+  --no: #ff6a5a;
+  --radius: 20px;
+  --font-scale: 1;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; margin: 0; }
+
+body {
+  font-family: var(--sans);
+  font-size: calc(17px * var(--font-scale));
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 255, 255, .06), transparent 45%),
+    var(--bg);
+  overflow: hidden;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+body::before {
+  content: "";
+  position: fixed; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* #app braucht eine eigene Hoehe: ohne sie faellt .stage auf 0
+   zusammen, die absolut gesetzten Bildschirme bekommen keine Hoehe
+   und der zentrierte Inhalt haengt halb ueber dem oberen Rand.     */
+#app { position: relative; height: 100%; }
+.stage { position: relative; height: 100%; }
+
+.screen {
+  position: absolute; inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  padding: clamp(14px, 3vh, 30px) clamp(14px, 4vw, 44px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.screen.is-active { display: flex; }
+.screen--center { justify-content: center; }
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: .78em;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+h1, h2 { margin: 0; line-height: 1.15; text-align: center; }
+h1 { font-size: clamp(26px, 5vw, 46px); }
+h2 { font-size: clamp(20px, 3.4vw, 30px); }
+.sub { margin: 0; color: var(--muted); text-align: center; max-width: 42ch; }
+
+/* ---------- Knöpfe ---------- */
+.btn {
+  font: inherit;
+  font-weight: 650;
+  color: var(--ink);
+  background: var(--panel-2);
+  border: 2px solid var(--edge);
+  border-radius: var(--radius);
+  padding: 14px 22px;
+  min-height: 56px;              /* Kinderfinger: nie kleiner */
+  cursor: pointer;
+  transition: transform .08s ease, filter .12s ease;
+}
+.btn:active { transform: scale(.97); }
+.btn:focus-visible { outline: 3px solid var(--info); outline-offset: 2px; }
+.btn--primary { background: var(--primary); color: var(--on-primary); border-color: transparent; }
+.btn--amber { background: var(--amber); color: var(--on-amber); border-color: transparent; }
+.btn--ok { background: var(--ok); color: var(--on-ok); border-color: transparent; }
+.btn--ghost { background: transparent; }
+.btn--big { font-size: 1.2em; padding: 20px 34px; min-height: 68px; }
+.btn[disabled] { opacity: .35; cursor: default; }
+
+.btn.opt {
+  width: 100%;
+  text-align: left;
+}
+.btn.opt.is-picked {
+  border-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 22%, var(--panel-2));
+}
+
+.row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+/* ---------- Kopfzeile ---------- */
+.topbar {
+  position: absolute; top: 10px; left: 12px; right: 12px;
+  display: flex; align-items: center; gap: 10px;
+  z-index: 40; pointer-events: none;
+}
+.topbar > * { pointer-events: auto; }
+.topbar .spacer { flex: 1; }
+.icon-btn {
+  width: 46px; height: 46px; min-height: 46px;
+  display: grid; place-items: center;
+  font-size: 20px; padding: 0;
+  border-radius: 50%;
+  background: var(--panel); border: 2px solid var(--edge); color: var(--ink);
+  cursor: pointer;
+}
+
+/* ---------- Übersicht ---------- */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+  gap: 14px;
+  width: 100%;
+  max-width: 900px;
+}
+.puzzle-card {
+  display: flex; align-items: center; gap: 12px;
+  text-align: left;
+  background: var(--panel);
+  border: 2px solid var(--edge);
+  border-radius: var(--radius);
+  padding: 16px;
+  min-height: 76px;
+  color: inherit; font: inherit; font-weight: 650;
+  cursor: pointer;
+}
+.puzzle-card .nr {
+  flex: 0 0 auto;
+  width: 38px; height: 38px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--panel-2);
+  font-family: var(--mono);
+}
+.puzzle-card.is-solved { background: color-mix(in srgb, var(--ok) 20%, var(--panel)); border-color: var(--ok); }
+.puzzle-card.is-solved .nr { background: var(--ok); color: var(--on-ok); }
+.puzzle-card.is-locked { opacity: .45; cursor: default; }
+.progress { color: var(--muted); font-family: var(--mono); font-size: .85em; }
+
+/* ---------- Rätselbildschirm ---------- */
+.puzzle-wrap { width: 100%; max-width: 760px; display: flex; flex-direction: column; gap: 14px; }
+.prompt { margin: 0; text-align: center; color: var(--muted); }
+.hint-box {
+  background: var(--panel); border: 2px dashed var(--edge);
+  border-radius: var(--radius); padding: 12px 16px; color: var(--muted);
+}
+.feedback { min-height: 30px; text-align: center; font-weight: 700; font-family: var(--mono); }
+.feedback.is-ok { color: var(--ok); }
+.feedback.is-no { color: var(--no); }
+.feedback.shake { animation: shake .4s; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+
+/* ---------- Rätseltyp: Auswahl ---------- */
+.p-choice { display: flex; flex-direction: column; gap: 10px; }
+
+/* ---------- Rätseltyp: Zahlencode ---------- */
+.p-number { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.num-display {
+  font-family: var(--mono);
+  font-size: clamp(30px, 7vw, 52px);
+  letter-spacing: .18em;
+  background: var(--panel);
+  border: 2px solid var(--edge);
+  border-radius: var(--radius);
+  padding: 8px 24px;
+  min-width: 5ch; text-align: center;
+}
+.num-pad { display: grid; grid-template-columns: repeat(3, 84px); gap: 10px; }
+.key { min-height: 64px; padding: 0; font-size: 1.3em; font-family: var(--mono); }
+.key--soft { background: var(--panel); color: var(--muted); }
+
+/* ---------- Rätseltyp: Wort ---------- */
+.p-text { display: flex; justify-content: center; }
+.text-input {
+  font: inherit; font-size: 1.3em; text-align: center;
+  color: var(--ink); background: var(--panel);
+  border: 2px solid var(--edge); border-radius: var(--radius);
+  padding: 14px 18px; width: min(420px, 100%);
+  user-select: text;
+}
+
+/* ---------- Rätseltyp: Zuordnung ---------- */
+.p-assign { display: flex; flex-direction: column; gap: 10px; }
+.assign-row {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--panel); border: 2px solid var(--edge);
+  border-radius: var(--radius); padding: 10px 14px;
+}
+.assign-img { width: 58px; height: 58px; object-fit: contain; flex: 0 0 auto; border-radius: 10px; }
+.assign-img--empty { display: grid; place-items: center; font-size: 26px; background: var(--panel-2); }
+.assign-caption { flex: 1; color: var(--muted); }
+.assign-input {
+  font: inherit; font-family: var(--mono); font-size: 1.3em; text-align: center;
+  width: 4.5ch; padding: 10px 4px;
+  color: var(--ink); background: var(--panel-2);
+  border: 2px solid var(--edge); border-radius: 12px;
+  user-select: text;
+}
+
+/* ---------- Rätseltyp: Richtig/Falsch ---------- */
+.p-truefalse { display: flex; flex-direction: column; gap: 10px; }
+.tf-row {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--panel); border: 2px solid var(--edge);
+  border-radius: var(--radius); padding: 12px 14px;
+}
+.tf-text { flex: 1; min-width: 180px; }
+.tf-btns { display: flex; gap: 8px; }
+.tf { min-height: 48px; padding: 10px 16px; }
+.tf--yes.is-picked { background: var(--ok); color: var(--on-ok); border-color: transparent; }
+.tf--no.is-picked { background: var(--no); color: #2a0500; border-color: transparent; }
+
+/* ---------- Rätseltyp: Reihenfolge ---------- */
+.p-order { display: flex; flex-direction: column; gap: 8px; }
+.order-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--panel); border: 2px solid var(--edge);
+  border-radius: var(--radius); padding: 8px 12px;
+}
+.order-pos {
+  width: 34px; height: 34px; flex: 0 0 auto;
+  display: grid; place-items: center; border-radius: 50%;
+  background: var(--panel-2); font-family: var(--mono);
+}
+.order-text { flex: 1; }
+.order-row .key { min-height: 44px; width: 52px; font-size: 1em; }
+
+/* ---------- Rätseltyp: Einsortieren ---------- */
+.p-sort2 { display: flex; flex-direction: column; gap: 12px; }
+.sort-hint { color: var(--muted); text-align: center; font-size: .88em; }
+.sort-pool, .sort-zone-body {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  min-height: 84px; padding: 10px;
+  background: var(--panel); border: 2px dashed var(--edge);
+  border-radius: var(--radius);
+  align-content: flex-start;
+}
+.sort-zones { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sort-zone { display: flex; flex-direction: column; gap: 6px; }
+.sort-zone-title { text-align: center; font-weight: 700; }
+.sort-pool.is-over, .sort-zone.is-over .sort-zone-body {
+  border-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 14%, var(--panel));
+}
+.chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  font: inherit; font-weight: 650; color: var(--ink);
+  background: var(--panel-2); border: 2px solid var(--edge);
+  border-radius: 999px; padding: 10px 16px; min-height: 48px;
+  cursor: grab; touch-action: none;
+}
+.chip.is-selected { border-color: var(--amber); background: color-mix(in srgb, var(--amber) 22%, var(--panel-2)); }
+.chip.is-dragging { opacity: .3; }
+.chip-emoji { font-size: 1.25em; }
+.chip--ghost {
+  position: fixed; z-index: 999; pointer-events: none;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .45);
+  transform: scale(1.04);
+}
+
+/* ---------- Video ---------- */
+.video-wrap { width: 100%; max-width: 880px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+video.party-video { width: 100%; max-height: 62vh; border-radius: var(--radius); background: #000; }
+.video-missing {
+  width: 100%; padding: 30px; text-align: center;
+  background: var(--panel); border: 2px dashed var(--edge); border-radius: var(--radius);
+  color: var(--muted);
+}
+
+/* ---------- Abschluss ---------- */
+.reveal {
+  font-family: var(--mono);
+  font-size: clamp(30px, 7vw, 58px);
+  letter-spacing: .1em;
+  color: var(--amber);
+  text-align: center;
+}
+
+/* ---------- Eltern-Konsole ---------- */
+.sheet {
+  position: fixed; inset: 0; z-index: 60;
+  display: grid; place-items: center;
+  background: rgba(8, 6, 26, .72);
+  padding: 16px;
+}
+.sheet[hidden] { display: none; }
+.sheet-card {
+  width: min(460px, 100%); max-height: 88vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--panel); border: 2px solid var(--edge);
+  border-radius: var(--radius); padding: 20px;
+}
+.sheet-title { margin: 0; font-size: 1.3em; text-align: center; }
+.sheet-sep { color: var(--muted); font-size: .8em; text-transform: uppercase; letter-spacing: .12em; margin-top: 8px; }
+.pin-dots { display: flex; gap: 14px; justify-content: center; margin: 6px 0; }
+.pin-dots i { width: 15px; height: 15px; border-radius: 50%; border: 2px solid var(--edge); display: block; }
+.pin-dots i.on { background: var(--info); border-color: var(--info); }
+.pin-msg { min-height: 20px; color: var(--no); font-family: var(--mono); font-size: .85em; text-align: center; }
+.pinpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.opt-note { color: var(--muted); font-size: .85em; margin: 0; }
+
+/* ---------- Wasserzeichen ---------- */
+.badge {
+  position: fixed; right: 10px; bottom: 8px; z-index: 50;
+  font-size: 11px; letter-spacing: .04em;
+  color: var(--ink); opacity: .55;
+  pointer-events: none;                 /* Kinder sollen nicht wegtippen */
+  font-family: var(--sans);
+}
+.badge--hero {
+  position: static; opacity: .75; font-size: .9em; text-align: center;
+  padding-top: 6px;
+}
+
+/* ---------- Bearbeitungsmodus ---------- */
+body.mode-edit .chip { cursor: pointer; }
+body.mode-edit [data-bind]:hover { outline: 2px dashed var(--info); outline-offset: 2px; }
+body.mode-edit [contenteditable="true"] {
+  outline: 2px solid var(--amber); outline-offset: 2px;
+  user-select: text; cursor: text;
+}
+.sel-overlay {
+  position: fixed; z-index: 55; pointer-events: none;
+  border: 2px solid var(--amber);
+  border-radius: 8px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, .04);
+}
+.sel-overlay[hidden] { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+</style>
+</head>
+<body>
+<!-- Im Export steht hier das Party-Dokument. In der Entwicklung
+     bleibt der Platzhalter stehen und der Player nimmt ?src= -->
+<script type="application/json" id="party-config">__PARTY_CONFIG__</script>
+<div id="app"></div>
+<script>
+(function () {
+"use strict";
+/* ---- src/player/dom.js ---- */
+/* Winziger DOM-Helfer. Kein Framework, keine virtuelle DOM-Schicht:
+   der Player rendert immer einen ganzen Bildschirm neu, und ein
+   Bildschirm hat selten mehr als 60 Knoten.                        */
+
+function h(tag, props = null, ...children) {
+  const node = document.createElement(tag);
+  if (props) {
+    for (const [key, value] of Object.entries(props)) {
+      if (value === null || value === undefined || value === false) continue;
+      if (key === "class") node.className = value;
+      else if (key === "text") node.textContent = value;
+      else if (key === "style" && typeof value === "object") Object.assign(node.style, value);
+      else if (key === "bind") node.setAttribute("data-bind", value);
+      else if (key === "dataset") Object.assign(node.dataset, value);
+      else if (key.startsWith("on") && typeof value === "function") {
+        node.addEventListener(key.slice(2).toLowerCase(), value);
+      } else if (value === true) node.setAttribute(key, "");
+      else node.setAttribute(key, value);
+    }
+  }
+  append(node, children);
+  return node;
+}
+
+function append(parent, children) {
+  for (const child of children.flat(Infinity)) {
+    if (child === null || child === undefined || child === false) continue;
+    parent.appendChild(child instanceof Node ? child : document.createTextNode(String(child)));
+  }
+  return parent;
+}
+
+function clear(node) {
+  while (node.firstChild) node.removeChild(node.firstChild);
+  return node;
+}
+
+/* Bild-URL aus dem Asset-Speicher. Assets liegen als Data-URL im
+   Dokument, damit der Export eine einzige Datei bleibt.            */
+function assetUrl(cfg, id) {
+  const asset = cfg?.assets?.[id];
+  if (!asset) return null;
+  return asset.data || null;
+}
+
+/* ---- src/shared/themes.js ---- */
+/* Design-Tokens.
+   Jeder Schluessel ist 1:1 eine CSS-Custom-Property im Player:
+   "panel-2" wird zu --panel-2. Keine Umrechnung, keine Magie -
+   dadurch kann man ein Theme im Browser-Inspektor direkt nachvollziehen. */
+
+const TOKEN_KEYS = [
+  "bg", "grid", "panel", "panel-2", "edge",
+  "ink", "muted",
+  "primary", "on-primary",
+  "info",
+  "amber", "on-amber",
+  "ok", "on-ok",
+  "no",
+  "radius",
+];
+
+/* Nur diese Tokens bekommen im Editor einen Farbwaehler.
+   Der Rest wird abgeleitet oder ist selten interessant. */
+const EDITABLE_COLORS = [
+  { key: "bg", label: "Hintergrund" },
+  { key: "panel", label: "Kachel" },
+  { key: "ink", label: "Schrift" },
+  { key: "primary", label: "Hauptfarbe" },
+  { key: "amber", label: "Aktueller Schritt" },
+  { key: "ok", label: "Richtig" },
+  { key: "no", label: "Falsch" },
+];
+
+const THEMES = {
+  labor: {
+    label: "Labor", icon: "🔬",
+    tokens: {
+      "bg": "#171540", "grid": "rgba(150,140,255,.07)",
+      "panel": "#221f57", "panel-2": "#2c286e", "edge": "rgba(170,160,255,.18)",
+      "ink": "#f4f2ff", "muted": "#b3aee0",
+      "primary": "#8b6cff", "on-primary": "#ffffff",
+      "info": "#5b9dff",
+      "amber": "#ffb62e", "on-amber": "#3a2600",
+      "ok": "#37d67a", "on-ok": "#053021",
+      "no": "#ff6a5a",
+      "radius": "20px",
+    },
+  },
+  detektiv: {
+    label: "Detektiv", icon: "🕵️",
+    tokens: {
+      "bg": "#12161f", "grid": "rgba(255,210,140,.06)",
+      "panel": "#1c2231", "panel-2": "#252d40", "edge": "rgba(230,200,150,.18)",
+      "ink": "#f3efe6", "muted": "#a9a596",
+      "primary": "#c8a04a", "on-primary": "#1a1408",
+      "info": "#6fa8d6",
+      "amber": "#e8b04b", "on-amber": "#231803",
+      "ok": "#4fc98a", "on-ok": "#04281a",
+      "no": "#e0645a",
+      "radius": "12px",
+    },
+  },
+  pirat: {
+    label: "Piraten", icon: "🏴‍☠️",
+    tokens: {
+      "bg": "#10263a", "grid": "rgba(255,225,160,.07)",
+      "panel": "#17384f", "panel-2": "#1f4a66", "edge": "rgba(255,220,160,.22)",
+      "ink": "#fdf6e3", "muted": "#a8c2d2",
+      "primary": "#e0a13a", "on-primary": "#2a1900",
+      "info": "#58b3d8",
+      "amber": "#ffcf5c", "on-amber": "#3a2a00",
+      "ok": "#4ecb8c", "on-ok": "#04291b",
+      "no": "#e4635a",
+      "radius": "16px",
+    },
+  },
+  weltraum: {
+    label: "Weltraum", icon: "🚀",
+    tokens: {
+      "bg": "#05070f", "grid": "rgba(120,220,255,.08)",
+      "panel": "#0d1426", "panel-2": "#152037", "edge": "rgba(120,200,255,.2)",
+      "ink": "#eaf4ff", "muted": "#8ea6c4",
+      "primary": "#35d6d0", "on-primary": "#00201f",
+      "info": "#6fa9ff",
+      "amber": "#ffc960", "on-amber": "#2e2000",
+      "ok": "#4be08f", "on-ok": "#012a18",
+      "no": "#ff7a6b",
+      "radius": "18px",
+    },
+  },
+  einhorn: {
+    label: "Einhorn", icon: "🦄",
+    tokens: {
+      "bg": "#3a1f52", "grid": "rgba(255,200,255,.08)",
+      "panel": "#4d2a6b", "panel-2": "#5e3582", "edge": "rgba(255,210,250,.25)",
+      "ink": "#fff4fd", "muted": "#dcbde8",
+      "primary": "#ff8ad1", "on-primary": "#3d0026",
+      "info": "#8ad4ff",
+      "amber": "#ffd166", "on-amber": "#3d2a00",
+      "ok": "#5fe2a5", "on-ok": "#01331f",
+      "no": "#ff6f8d",
+      "radius": "26px",
+    },
+  },
+};
+
+function themeTokens(theme) {
+  const preset = THEMES[theme?.preset] || THEMES.labor;
+  return { ...preset.tokens, ...(theme?.tokens || {}) };
+}
+
+/* Setzt die Tokens auf ein Element (im Player: <html>). */
+function applyTheme(rootEl, theme) {
+  const tokens = themeTokens(theme);
+  for (const key of TOKEN_KEYS) {
+    if (tokens[key] != null) rootEl.style.setProperty(`--${key}`, tokens[key]);
+  }
+  const scale = Number(theme?.fontScale) || 1;
+  rootEl.style.setProperty("--font-scale", String(scale));
+}
+
+/* ---- Kontrastpruefung (WCAG 2.1) --------------------------------
+   Ohne diese Pruefung bauen Nutzer zuverlaessig hellgelbe Schrift
+   auf Weiss. Der Editor warnt damit direkt beim Farbwaehlen.       */
+
+function parseColor(value) {
+  if (typeof value !== "string") return null;
+  const hex = value.trim().replace(/^#/, "");
+  if (/^[0-9a-f]{3}$/i.test(hex)) {
+    return [0, 1, 2].map((i) => parseInt(hex[i] + hex[i], 16));
+  }
+  if (/^[0-9a-f]{6}$/i.test(hex)) {
+    return [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  }
+  const m = value.match(/rgba?\(([^)]+)\)/i);
+  if (m) {
+    const parts = m[1].split(",").map((s) => parseFloat(s));
+    if (parts.length >= 3) return parts.slice(0, 3).map((n) => Math.round(n));
+  }
+  return null;
+}
+
+function channelLuminance(c) {
+  const s = c / 255;
+  return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+}
+
+function luminance(color) {
+  const rgb = parseColor(color);
+  if (!rgb) return null;
+  const [r, g, b] = rgb.map(channelLuminance);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrastRatio(a, b) {
+  const la = luminance(a);
+  const lb = luminance(b);
+  if (la === null || lb === null) return null;
+  const hi = Math.max(la, lb);
+  const lo = Math.min(la, lb);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/* Waehlt Schwarz oder Weiss als Textfarbe auf einem Grund. */
+function readableInk(background) {
+  const white = contrastRatio(background, "#ffffff") || 0;
+  const black = contrastRatio(background, "#000000") || 0;
+  return white >= black ? "#ffffff" : "#111111";
+}
+
+/* ---- src/puzzles/choice.js ---- */
+/* Eine Antwort aus mehreren anklicken. Der haeufigste Typ:
+   "Welcher Stoff fehlt auf dem Poster?"                            */
+const __mod5_default = {
+  id: "choice",
+  label: "Auswahl",
+  icon: "🔘",
+  summary: "Mehrere Antworten stehen zur Wahl, eine ist richtig.",
+
+  fields: [
+    { key: "options", type: "list", label: "Antwortmöglichkeiten",
+      help: "Eine Möglichkeit pro Zeile. Mindestens zwei." },
+    { key: "answer", type: "optionpick", label: "Richtige Antwort", from: "options" },
+  ],
+
+  defaults: () => ({ options: ["Antwort A", "Antwort B", "Antwort C"], answer: "Antwort A" }),
+
+  validate(p) {
+    const issues = [];
+    const options = p.options || [];
+    if (options.length < 2) issues.push({ field: "options", msg: "Mindestens zwei Antwortmöglichkeiten nötig." });
+    if (options.some((o) => !String(o).trim())) issues.push({ field: "options", msg: "Eine Antwortmöglichkeit ist leer." });
+    if (!p.answer) issues.push({ field: "answer", msg: "Es ist keine richtige Antwort markiert." });
+    else if (!options.includes(p.answer)) {
+      issues.push({ field: "answer", msg: `Die richtige Antwort "${p.answer}" steht nicht in der Liste.` });
+    }
+    return issues;
+  },
+
+  check: (p, answer) => answer != null && answer === p.answer,
+
+  render(ctx) {
+    const { puzzle, path } = ctx;
+    let picked = null;
+    const buttons = [];
+
+    const node = h("div", { class: "p-choice" },
+      (puzzle.options || []).map((option, i) => {
+        const btn = h("button", {
+          class: "btn opt", type: "button",
+          bind: `${path}.options.${i}`,
+          text: option,
+          onclick: () => {
+            picked = option;
+            buttons.forEach((b) => b.classList.toggle("is-picked", b === btn));
+          },
+        });
+        buttons.push(btn);
+        return btn;
+      }),
+    );
+
+    return { node, getAnswer: () => picked };
+  },
+};
+
+/* ---- src/puzzles/number.js ---- */
+/* Zahlencode ueber ein grosses Tastenfeld. Bewusst kein <input>:
+   auf Tablets soll keine Systemtastatur hochklappen.               */
+const __mod6_default = {
+  id: "number",
+  label: "Zahlen-Code",
+  icon: "🔢",
+  summary: "Kinder tippen eine Zahl auf einem großen Tastenfeld ein.",
+
+  fields: [
+    { key: "answer", type: "text", label: "Richtige Zahl", pattern: "^[0-9]{1,8}$",
+      help: "Nur Ziffern, höchstens acht Stellen." },
+    { key: "maxLength", type: "slider", label: "Anzahl Stellen", min: 1, max: 8, step: 1 },
+  ],
+
+  defaults: () => ({ answer: "123", maxLength: 3 }),
+
+  validate(p) {
+    const issues = [];
+    const answer = String(p.answer ?? "");
+    if (!answer) issues.push({ field: "answer", msg: "Es fehlt die richtige Zahl." });
+    else if (!/^\d{1,8}$/.test(answer)) issues.push({ field: "answer", msg: "Die Antwort darf nur aus Ziffern bestehen." });
+    else if (answer.length > (p.maxLength || 8)) {
+      issues.push({ field: "maxLength", msg: `Die Antwort hat ${answer.length} Stellen, eingestellt sind ${p.maxLength}.` });
+    }
+    return issues;
+  },
+
+  check: (p, answer) => String(answer ?? "").trim() === String(p.answer ?? "").trim(),
+
+  render(ctx) {
+    const { puzzle } = ctx;
+    const maxLength = Math.max(1, Math.min(8, Number(puzzle.maxLength) || 3));
+    let value = "";
+
+    const display = h("div", { class: "num-display" });
+    const paint = () => {
+      display.textContent = value.padEnd(maxLength, "·");
+    };
+    paint();
+
+    const key = (label, onPress, cls) =>
+      h("button", { class: `btn key ${cls || ""}`, type: "button", text: label,
+        onclick: () => { onPress(); paint(); } });
+
+    const digits = ["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) =>
+      key(d, () => { if (value.length < maxLength) value += d; }));
+
+    const node = h("div", { class: "p-number" },
+      display,
+      h("div", { class: "num-pad" },
+        digits,
+        key("←", () => { value = value.slice(0, -1); }, "key--soft"),
+        key("0", () => { if (value.length < maxLength) value += "0"; }),
+        key("C", () => { value = ""; }, "key--soft"),
+      ),
+    );
+
+    return { node, getAnswer: () => value };
+  },
+};
+
+/* ---- src/puzzles/text.js ---- */
+/* Wort-Antwort ueber die Systemtastatur. Fuer Loesungswoerter. */
+const __mod7_default = {
+  id: "text",
+  label: "Wort-Antwort",
+  icon: "🔤",
+  summary: "Ein Wort wird über die Tastatur eingegeben.",
+
+  fields: [
+    { key: "answer", type: "text", label: "Richtiges Wort" },
+    { key: "caseSensitive", type: "toggle", label: "Groß- und Kleinschreibung beachten" },
+    { key: "placeholder", type: "text", label: "Hinweis im Eingabefeld" },
+  ],
+
+  defaults: () => ({ answer: "Hefe", caseSensitive: false, placeholder: "Antwort eintippen" }),
+
+  validate(p) {
+    return String(p.answer ?? "").trim()
+      ? []
+      : [{ field: "answer", msg: "Es fehlt das richtige Wort." }];
+  },
+
+  check(p, answer) {
+    const given = String(answer ?? "").trim();
+    const want = String(p.answer ?? "").trim();
+    if (!given) return false;
+    return p.caseSensitive ? given === want : given.toLowerCase() === want.toLowerCase();
+  },
+
+  render(ctx) {
+    const input = h("input", {
+      class: "text-input", type: "text", autocomplete: "off", autocapitalize: "off",
+      spellcheck: "false", placeholder: ctx.puzzle.placeholder || "Antwort eintippen",
+    });
+    const node = h("div", { class: "p-text" }, input);
+    return { node, getAnswer: () => input.value };
+  },
+};
+
+/* ---- src/puzzles/assign.js ---- */
+/* Bild -> Zahl. Im Raum haengen Symbole mit Zahlen daneben; hier
+   wird zugeordnet. Der urspruengliche Stromkreis-Typ.              */
+const __mod8_default = {
+  id: "assign",
+  label: "Zahlen zuordnen",
+  icon: "🔗",
+  summary: "Zu jedem Bild wird eine Zahl eingetragen.",
+
+  fields: [
+    { key: "items", type: "objectlist", label: "Bilder und Zahlen",
+      itemLabel: (it, i) => `Bild ${i + 1}`,
+      itemFields: [
+        { key: "image", type: "image", label: "Bild" },
+        { key: "caption", type: "text", label: "Beschriftung (optional)" },
+        { key: "value", type: "text", label: "Richtige Zahl", pattern: "^[0-9]{1,4}$" },
+      ],
+      newItem: () => ({ image: "", caption: "", value: "1" }) },
+  ],
+
+  defaults: () => ({
+    items: [
+      { image: "", caption: "Symbol 1", value: "10" },
+      { image: "", caption: "Symbol 2", value: "20" },
+    ],
+  }),
+
+  validate(p) {
+    const issues = [];
+    const items = p.items || [];
+    if (!items.length) issues.push({ field: "items", msg: "Es ist kein einziges Bild eingetragen." });
+    items.forEach((item, i) => {
+      if (!String(item.value ?? "").trim()) {
+        issues.push({ field: `items.${i}.value`, msg: `Bild ${i + 1} hat keine Zahl.` });
+      }
+      if (!item.image) {
+        issues.push({ field: `items.${i}.image`, level: "warn", msg: `Bild ${i + 1} hat kein Bild — es wird nur die Beschriftung angezeigt.` });
+      }
+    });
+    return issues;
+  },
+
+  check(p, answer) {
+    const items = p.items || [];
+    if (!Array.isArray(answer) || answer.length !== items.length) return false;
+    return items.every((item, i) => String(answer[i] ?? "").trim() === String(item.value ?? "").trim());
+  },
+
+  render(ctx) {
+    const { puzzle, path, cfg } = ctx;
+    const inputs = [];
+
+    const node = h("div", { class: "p-assign" },
+      (puzzle.items || []).map((item, i) => {
+        const input = h("input", {
+          class: "assign-input", type: "text", inputmode: "numeric",
+          maxlength: "4", autocomplete: "off", placeholder: "?",
+        });
+        inputs.push(input);
+        const src = assetUrl(cfg, item.image);
+        return h("div", { class: "assign-row", bind: `${path}.items.${i}` },
+          src
+            ? h("img", { class: "assign-img", src, alt: item.caption || "" })
+            : h("div", { class: "assign-img assign-img--empty", text: "🖼" }),
+          h("span", { class: "assign-caption", text: item.caption || "" }),
+          input,
+        );
+      }),
+    );
+
+    return { node, getAnswer: () => inputs.map((i) => i.value) };
+  },
+};
+
+/* ---- src/puzzles/sort2.js ---- */
+/* Gegenstaende in zwei Faecher einsortieren ("schwimmt / sinkt").
+   Bedienung doppelt ausgelegt: ziehen ODER antippen-und-ablegen.
+   Ziehen mit Pointer-Events statt HTML5-Drag-and-Drop, weil
+   letzteres auf iOS gar nicht funktioniert.                        */
+const __mod9_default = {
+  id: "sort2",
+  label: "Einsortieren",
+  icon: "🗂️",
+  summary: "Gegenstände werden in zwei Fächer einsortiert.",
+
+  fields: [
+    { key: "zones", type: "list", label: "Die beiden Fächer", fixedLength: 2 },
+    { key: "objects", type: "objectlist", label: "Gegenstände",
+      itemLabel: (it) => `${it.emoji || "•"} ${it.label || ""}`.trim(),
+      itemFields: [
+        { key: "label", type: "text", label: "Name" },
+        { key: "emoji", type: "emoji", label: "Symbol" },
+        { key: "zone", type: "zonepick", label: "Gehört in Fach", from: "zones" },
+      ],
+      newItem: () => ({ label: "Neuer Gegenstand", emoji: "🔹", zone: 0 }) },
+  ],
+
+  defaults: () => ({
+    zones: ["Schwimmt", "Sinkt"],
+    objects: [
+      { label: "Holz", emoji: "🪵", zone: 0 },
+      { label: "Stein", emoji: "🪨", zone: 1 },
+      { label: "Korken", emoji: "🍾", zone: 0 },
+      { label: "Münze", emoji: "🪙", zone: 1 },
+    ],
+  }),
+
+  validate(p) {
+    const issues = [];
+    const zones = p.zones || [];
+    if (zones.length !== 2 || zones.some((z) => !String(z).trim())) {
+      issues.push({ field: "zones", msg: "Es müssen genau zwei benannte Fächer sein." });
+    }
+    const objects = p.objects || [];
+    if (objects.length < 2) issues.push({ field: "objects", msg: "Mindestens zwei Gegenstände nötig." });
+    objects.forEach((o, i) => {
+      if (!String(o.label ?? "").trim()) {
+        issues.push({ field: `objects.${i}.label`, msg: `Gegenstand ${i + 1} hat keinen Namen.` });
+      }
+      if (o.zone !== 0 && o.zone !== 1) {
+        issues.push({ field: `objects.${i}.zone`, msg: `Gegenstand ${i + 1} ist keinem Fach zugeordnet.` });
+      }
+    });
+    return issues;
+  },
+
+  check(p, answer) {
+    const objects = p.objects || [];
+    if (!Array.isArray(answer) || answer.length !== objects.length) return false;
+    return objects.every((o, i) => answer[i] === o.zone);
+  },
+
+  render(ctx) {
+    const { puzzle, path } = ctx;
+    const objects = puzzle.objects || [];
+    const zones = puzzle.zones || ["A", "B"];
+    const placement = new Array(objects.length).fill(null); // null = noch im Vorrat
+    let selected = null;
+
+    const pool = h("div", { class: "sort-pool", dataset: { zone: "pool" } });
+    const zoneEls = zones.slice(0, 2).map((label, z) =>
+      h("div", { class: "sort-zone", dataset: { zone: String(z) } },
+        h("div", { class: "sort-zone-title", bind: `${path}.zones.${z}`, text: label }),
+        h("div", { class: "sort-zone-body", dataset: { zone: String(z) } }),
+      ),
+    );
+
+    const chips = objects.map((obj, i) =>
+      h("button", {
+        class: "chip", type: "button", dataset: { idx: String(i) },
+        bind: `${path}.objects.${i}`,
+      },
+        h("span", { class: "chip-emoji", text: obj.emoji || "🔹" }),
+        h("span", { class: "chip-label", text: obj.label || "" }),
+      ),
+    );
+
+    const place = (idx, zone) => {
+      placement[idx] = zone;
+      const target = zone === null ? pool : zoneEls[zone].querySelector(".sort-zone-body");
+      target.appendChild(chips[idx]);
+      select(null);
+    };
+
+    const select = (idx) => {
+      selected = idx;
+      chips.forEach((c, i) => c.classList.toggle("is-selected", i === idx));
+    };
+
+    /* --- Antippen: erst Gegenstand, dann Fach --- */
+    chips.forEach((chip, i) => {
+      chip.addEventListener("click", (event) => {
+        if (chip.dataset.dragged === "1") { delete chip.dataset.dragged; return; }
+        event.stopPropagation();
+        select(selected === i ? null : i);
+      });
+    });
+
+    const dropTargets = [pool, ...zoneEls];
+    dropTargets.forEach((el) => {
+      el.addEventListener("click", () => {
+        if (selected === null) return;
+        place(selected, el === pool ? null : Number(el.dataset.zone));
+      });
+    });
+
+    /* --- Ziehen: Geisterbild folgt dem Finger --- */
+    let drag = null;
+    const onDown = (event, idx) => {
+      if (event.button !== undefined && event.button !== 0) return;
+      drag = { idx, startX: event.clientX, startY: event.clientY, ghost: null };
+      chips[idx].setPointerCapture?.(event.pointerId);
+    };
+    const onMove = (event) => {
+      if (!drag) return;
+      const dx = event.clientX - drag.startX;
+      const dy = event.clientY - drag.startY;
+      if (!drag.ghost && Math.hypot(dx, dy) < 8) return;
+      if (!drag.ghost) {
+        const chip = chips[drag.idx];
+        const rect = chip.getBoundingClientRect();
+        drag.ghost = chip.cloneNode(true);
+        drag.ghost.className = "chip chip--ghost";
+        drag.ghost.style.width = `${rect.width}px`;
+        drag.offX = drag.startX - rect.left;
+        drag.offY = drag.startY - rect.top;
+        document.body.appendChild(drag.ghost);
+        chip.classList.add("is-dragging");
+      }
+      drag.ghost.style.left = `${event.clientX - drag.offX}px`;
+      drag.ghost.style.top = `${event.clientY - drag.offY}px`;
+      const over = dropTargetAt(event.clientX, event.clientY);
+      dropTargets.forEach((el) => el.classList.toggle("is-over", el === over));
+    };
+    const onUp = (event) => {
+      if (!drag) return;
+      const chip = chips[drag.idx];
+      if (drag.ghost) {
+        drag.ghost.remove();
+        chip.classList.remove("is-dragging");
+        chip.dataset.dragged = "1";
+        const over = dropTargetAt(event.clientX, event.clientY);
+        if (over) place(drag.idx, over === pool ? null : Number(over.dataset.zone));
+      }
+      dropTargets.forEach((el) => el.classList.remove("is-over"));
+      drag = null;
+    };
+    const dropTargetAt = (x, y) => {
+      const el = document.elementFromPoint(x, y);
+      if (!el) return null;
+      const zone = el.closest("[data-zone]");
+      if (!zone) return null;
+      return zone.dataset.zone === "pool" ? pool : zoneEls[Number(zone.dataset.zone)] || null;
+    };
+
+    chips.forEach((chip, i) => {
+      chip.addEventListener("pointerdown", (e) => onDown(e, i));
+      chip.addEventListener("pointermove", onMove);
+      chip.addEventListener("pointerup", onUp);
+      chip.addEventListener("pointercancel", onUp);
+    });
+
+    chips.forEach((chip) => pool.appendChild(chip));
+
+    const node = h("div", { class: "p-sort2" },
+      h("div", { class: "sort-hint", text: "Ziehen — oder antippen und dann das Fach antippen." },),
+      pool,
+      h("div", { class: "sort-zones" }, zoneEls),
+    );
+
+    return { node, getAnswer: () => placement.slice() };
+  },
+};
+
+/* ---- src/puzzles/truefalse.js ---- */
+/* Mehrere Aussagen, jede richtig oder falsch. Gut fuer Wissensfragen,
+   weil alle Kinder gleichzeitig mitdenken koennen.                 */
+const __mod10_default = {
+  id: "truefalse",
+  label: "Richtig oder falsch",
+  icon: "✅",
+  summary: "Zu mehreren Aussagen wird jeweils richtig oder falsch getippt.",
+
+  fields: [
+    { key: "statements", type: "objectlist", label: "Aussagen",
+      itemLabel: (it) => it.text || "Aussage",
+      itemFields: [
+        { key: "text", type: "text", label: "Aussage" },
+        { key: "value", type: "toggle", label: "Diese Aussage ist richtig" },
+      ],
+      newItem: () => ({ text: "Neue Aussage", value: true }) },
+  ],
+
+  defaults: () => ({
+    statements: [
+      { text: "Eis schwimmt auf Wasser.", value: true },
+      { text: "Magnete ziehen Holz an.", value: false },
+    ],
+  }),
+
+  validate(p) {
+    const list = p.statements || [];
+    if (!list.length) return [{ field: "statements", msg: "Es ist keine Aussage eingetragen." }];
+    return list
+      .map((s, i) => (String(s.text ?? "").trim() ? null : { field: `statements.${i}.text`, msg: `Aussage ${i + 1} ist leer.` }))
+      .filter(Boolean);
+  },
+
+  check(p, answer) {
+    const list = p.statements || [];
+    if (!Array.isArray(answer) || answer.length !== list.length) return false;
+    return list.every((s, i) => answer[i] !== null && answer[i] === !!s.value);
+  },
+
+  render(ctx) {
+    const { puzzle, path } = ctx;
+    const picks = new Array((puzzle.statements || []).length).fill(null);
+
+    const node = h("div", { class: "p-truefalse" },
+      (puzzle.statements || []).map((statement, i) => {
+        const yes = h("button", { class: "btn tf tf--yes", type: "button", text: "Richtig" });
+        const no = h("button", { class: "btn tf tf--no", type: "button", text: "Falsch" });
+        const set = (value) => {
+          picks[i] = value;
+          yes.classList.toggle("is-picked", value === true);
+          no.classList.toggle("is-picked", value === false);
+        };
+        yes.addEventListener("click", () => set(true));
+        no.addEventListener("click", () => set(false));
+        return h("div", { class: "tf-row" },
+          h("span", { class: "tf-text", bind: `${path}.statements.${i}.text`, text: statement.text }),
+          h("div", { class: "tf-btns" }, yes, no),
+        );
+      }),
+    );
+
+    return { node, getAnswer: () => picks };
+  },
+};
+
+/* ---- src/shared/rng.js ---- */
+/* Deterministischer Zufall. Wichtig, damit ein Raetsel bei jedem
+   Oeffnen dieselbe Startanordnung zeigt - sonst wirkt es kaputt. */
+
+function hashString(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function next() {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* Fisher-Yates mit festem Startwert. Sorgt zusaetzlich dafuer, dass
+   das Ergebnis bei mehr als einem Element nicht die Ausgangsfolge
+   ist - eine bereits geloeste Aufgabe waere kein Raetsel.          */
+function seededShuffle(items, seed) {
+  const rand = mulberry32(hashString(String(seed)));
+  const out = items.slice();
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  if (out.length > 1 && out.every((v, i) => v === items[i])) {
+    [out[0], out[1]] = [out[1], out[0]];
+  }
+  return out;
+}
+
+/* ---- src/puzzles/order.js ---- */
+/* Reihenfolge herstellen. Bewusst mit Pfeiltasten statt Ziehen:
+   das funktioniert auf jedem Geraet und auch mit kleinen Fingern. */
+const __mod11_default = {
+  id: "order",
+  label: "Reihenfolge",
+  icon: "↕️",
+  summary: "Elemente werden mit Pfeilen in die richtige Reihenfolge gebracht.",
+
+  fields: [
+    { key: "items", type: "list", label: "Elemente in der richtigen Reihenfolge",
+      help: "Von oben nach unten so eintragen, wie es am Ende stimmen soll. Angezeigt wird gemischt." },
+  ],
+
+  defaults: () => ({ items: ["Erstes", "Zweites", "Drittes"] }),
+
+  validate(p) {
+    const items = p.items || [];
+    const issues = [];
+    if (items.length < 2) issues.push({ field: "items", msg: "Mindestens zwei Elemente nötig." });
+    if (items.some((i) => !String(i).trim())) issues.push({ field: "items", msg: "Ein Element ist leer." });
+    if (new Set(items).size !== items.length) {
+      issues.push({ field: "items", msg: "Zwei Elemente sind gleich — dann ist die Reihenfolge nicht eindeutig." });
+    }
+    return issues;
+  },
+
+  check(p, answer) {
+    const items = p.items || [];
+    if (!Array.isArray(answer) || answer.length !== items.length) return false;
+    return items.every((item, i) => item === answer[i]);
+  },
+
+  render(ctx) {
+    const { puzzle } = ctx;
+    let current = seededShuffle(puzzle.items || [], puzzle.id || "order");
+
+    const list = h("div", { class: "p-order" });
+
+    const paint = () => {
+      list.replaceChildren(
+        ...current.map((item, i) =>
+          h("div", { class: "order-row" },
+            h("span", { class: "order-pos", text: String(i + 1) }),
+            h("span", { class: "order-text", text: item }),
+            h("button", {
+              class: "btn key key--soft", type: "button", text: "▲",
+              disabled: i === 0,
+              onclick: () => { swap(i, i - 1); },
+            }),
+            h("button", {
+              class: "btn key key--soft", type: "button", text: "▼",
+              disabled: i === current.length - 1,
+              onclick: () => { swap(i, i + 1); },
+            }),
+          ),
+        ),
+      );
+    };
+
+    const swap = (a, b) => {
+      if (b < 0 || b >= current.length) return;
+      [current[a], current[b]] = [current[b], current[a]];
+      paint();
+    };
+
+    paint();
+    return { node: list, getAnswer: () => current.slice() };
+  },
+};
+
+/* ---- src/puzzles/index.js ---- */
+/* Registry der Raetseltypen.
+   Ein neuer Typ ist genau eine Datei plus eine Zeile hier - Editor-
+   Oberflaeche, Pruefung und Export ergeben sich daraus von selbst. */
+const choice = __mod5_default;
+const number = __mod6_default;
+const text = __mod7_default;
+const assign = __mod8_default;
+const sort2 = __mod9_default;
+const truefalse = __mod10_default;
+const order = __mod11_default;
+const PUZZLES = [choice, number, text, assign, sort2, truefalse, order];
+
+const BY_ID = new Map(PUZZLES.map((p) => [p.id, p]));
+
+function puzzleDef(type) {
+  return BY_ID.get(type) || null;
+}
+
+function puzzleLabel(type) {
+  return puzzleDef(type)?.label || type;
+}
+
+/* ---- src/shared/path.js ---- */
+/* Pfad-Zugriff auf das Config-Objekt.
+   Pfade sind Punkt-Notation mit Zahlen fuer Array-Indizes:
+     "flow.0.headline"   "puzzles.2.options.1"
+   Das ist die gemeinsame Sprache von Editor, Bridge und Player:
+   jede Aenderung ist ein {path, value}-Paar.                        */
+
+function splitPath(path) {
+  return String(path).split(".").filter((s) => s !== "");
+}
+
+function getPath(obj, path) {
+  let cur = obj;
+  for (const key of splitPath(path)) {
+    if (cur === null || cur === undefined) return undefined;
+    cur = cur[key];
+  }
+  return cur;
+}
+
+/* Setzt einen Wert und legt fehlende Zwischenebenen an.
+   Zahl-Segmente erzeugen Arrays, alles andere Objekte. */
+function setPath(obj, path, value) {
+  const keys = splitPath(path);
+  if (keys.length === 0) throw new Error("setPath: leerer Pfad");
+  let cur = obj;
+  for (let i = 0; i < keys.length - 1; i++) {
+    const key = keys[i];
+    if (cur[key] === null || typeof cur[key] !== "object") {
+      cur[key] = /^\d+$/.test(keys[i + 1]) ? [] : {};
+    }
+    cur = cur[key];
+  }
+  cur[keys[keys.length - 1]] = value;
+  return obj;
+}
+
+/* Entfernt einen Wert. Bei Arrays wird gespleisst, damit keine
+   Luecken entstehen (undefined-Loecher brechen sonst das Rendering). */
+function delPath(obj, path) {
+  const keys = splitPath(path);
+  const parent = keys.length > 1 ? getPath(obj, keys.slice(0, -1).join(".")) : obj;
+  if (parent === null || typeof parent !== "object") return obj;
+  const last = keys[keys.length - 1];
+  if (Array.isArray(parent)) parent.splice(Number(last), 1);
+  else delete parent[last];
+  return obj;
+}
+
+function clone(value) {
+  if (typeof structuredClone === "function") return structuredClone(value);
+  return JSON.parse(JSON.stringify(value));
+}
+
+/* Verschiebt ein Array-Element. Gibt true zurueck, wenn sich etwas
+   geaendert hat - der Aufrufer spart sich sonst den Re-Render. */
+function moveItem(arr, from, to) {
+  if (!Array.isArray(arr)) return false;
+  if (from === to) return false;
+  if (from < 0 || from >= arr.length) return false;
+  if (to < 0 || to >= arr.length) return false;
+  const [item] = arr.splice(from, 1);
+  arr.splice(to, 0, item);
+  return true;
+}
+
+/* Kurze, kollisionsarme ID. Kein UUID noetig: der Namensraum ist
+   ein einzelnes Party-Dokument mit selten mehr als 50 Objekten. */
+function newId(prefix) {
+  const rnd = Math.random().toString(36).slice(2, 8);
+  const time = Date.now().toString(36).slice(-4);
+  return `${prefix}_${time}${rnd}`;
+}
+
+/* ---- src/shared/schema.js ---- */
+/* Das Party-Dokument: einziges Datenmodell des Baukastens.
+   Der Editor bearbeitet es, der Player fuehrt es aus, der Export
+   bettet es ein. Alles andere ist Darstellung.                     */
+
+
+const SCHEMA_VERSION = 1;
+
+/* Bildschirmtypen im Ablauf. Die Reihenfolge ist Daten, nicht Code -
+   genau das unterscheidet den Baukasten von einer fixen Vorlage. */
+const SCREEN_TYPES = {
+  start:    { label: "Startbildschirm", icon: "▶", unique: true },
+  video:    { label: "Video",           icon: "🎬", unique: false },
+  overview: { label: "Rätselübersicht", icon: "🧩", unique: true },
+  final:    { label: "Abschluss",       icon: "🏁", unique: true },
+};
+
+function defaultScreen(type) {
+  const id = newId("s");
+  switch (type) {
+    case "start":
+      return { id, type: "start", headline: "Die geheime Mission",
+               sub: "Euer Team wird im Labor gebraucht.", cta: "Mission starten" };
+    case "video":
+      return { id, type: "video", source: { kind: "none" },
+               skippable: true, autoplay: true, cta: "Weiter" };
+    case "overview":
+      return { id, type: "overview", headline: "Wählt ein Rätsel",
+               mode: "free", finalCta: "Zum Abschluss" };
+    case "final":
+      return { id, type: "final", headline: "Geschafft!",
+               text: "Ihr habt alle Rätsel gelöst.",
+               reveal: "", revealLabel: "Euer Lösungswort",
+               video: { kind: "none" } };
+    default:
+      throw new Error(`Unbekannter Bildschirmtyp: ${type}`);
+  }
+}
+
+function defaultPuzzle(type, nr) {
+  const def = puzzleDef(type);
+  if (!def) throw new Error(`Unbekannter Rätseltyp: ${type}`);
+  return {
+    id: newId("q"),
+    nr: nr || 1,
+    type,
+    /* Nicht der Typname: sonst heissen vier neue Raetsel alle
+       "Auswahl" und die Uebersicht wird unbrauchbar. */
+    title: `Rätsel ${nr || 1}`,
+    prompt: "",
+    hint: "",
+    ...def.defaults(),
+  };
+}
+
+function emptyParty(title = "Neue Rätsel-Party") {
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    id: newId("p"),
+    meta: { title, language: "de", createdAt: new Date().toISOString() },
+    theme: { preset: "labor", tokens: {}, fontScale: 1, iconSeed: "🔬" },
+    flow: [defaultScreen("start"), defaultScreen("overview"), defaultScreen("final")],
+    puzzles: [defaultPuzzle("choice", 1)],
+    assets: {},
+    parent: { pin: "1337", allowSkip: true, allowMarkSolved: true },
+    branding: { license: null },
+  };
+}
+
+/* ---- Migration ---------------------------------------------------
+   Sobald die erste .party.json in fremden Haenden ist, ist das
+   Schema ein Vertrag. Jede Version bekommt hier einen Eintrag.     */
+
+const MIGRATIONS = {
+  // 1: (cfg) => { ...; cfg.schemaVersion = 2; return cfg; }
+};
+
+function migrate(input) {
+  let cfg = input;
+  if (!cfg || typeof cfg !== "object") throw new Error("Keine gültige Party-Datei.");
+  let version = Number(cfg.schemaVersion) || 1;
+  if (version > SCHEMA_VERSION) {
+    throw new Error(
+      `Diese Datei wurde mit einer neueren Version erstellt ` +
+      `(Schema ${version}, unterstützt wird ${SCHEMA_VERSION}).`,
+    );
+  }
+  while (version < SCHEMA_VERSION) {
+    const step = MIGRATIONS[version];
+    if (!step) throw new Error(`Migration von Schema ${version} fehlt.`);
+    cfg = step(cfg);
+    version = Number(cfg.schemaVersion);
+  }
+  return normalize(cfg);
+}
+
+/* Fuellt fehlende Felder auf. Toleranz beim Lesen, Strenge beim
+   Schreiben - eine handgeschriebene Party-Datei soll laufen.       */
+function normalize(cfg) {
+  const base = emptyParty();
+  const out = {
+    schemaVersion: SCHEMA_VERSION,
+    id: cfg.id || base.id,
+    meta: { ...base.meta, ...(cfg.meta || {}) },
+    theme: { ...base.theme, ...(cfg.theme || {}) },
+    flow: Array.isArray(cfg.flow) && cfg.flow.length ? cfg.flow : base.flow,
+    puzzles: Array.isArray(cfg.puzzles) ? cfg.puzzles : [],
+    assets: cfg.assets && typeof cfg.assets === "object" ? cfg.assets : {},
+    parent: { ...base.parent, ...(cfg.parent || {}) },
+    branding: { ...base.branding, ...(cfg.branding || {}) },
+  };
+  out.theme.tokens = out.theme.tokens || {};
+  out.flow = out.flow.map((s, i) => ({ ...s, id: s.id || `s${i}`, type: s.type || "start" }));
+  out.puzzles = out.puzzles.map((p, i) => ({
+    ...p,
+    id: p.id || `q${i}`,
+    nr: Number(p.nr) || i + 1,
+    title: p.title || `Rätsel ${i + 1}`,
+  }));
+  return out;
+}
+
+/* ---- Pruefung vor dem Export ------------------------------------
+   Liefert Befunde mit Pfad, damit der Editor zur Fehlerstelle
+   springen kann. level: "error" blockt den Export, "warn" nicht.   */
+
+function validateParty(cfg) {
+  const issues = [];
+  const add = (level, path, msg) => issues.push({ level, path, msg });
+
+  if (!cfg.meta?.title?.trim()) add("warn", "meta.title", "Die Party hat keinen Namen.");
+
+  const types = cfg.flow.map((s) => s.type);
+  if (!types.includes("start")) add("error", "flow", "Es fehlt ein Startbildschirm.");
+  if (cfg.puzzles.length && !types.includes("overview")) {
+    add("error", "flow", "Es gibt Rätsel, aber keine Rätselübersicht im Ablauf.");
+  }
+  if (!types.includes("final")) add("warn", "flow", "Es fehlt ein Abschlussbildschirm.");
+
+  cfg.flow.forEach((screen, i) => {
+    if (!SCREEN_TYPES[screen.type]) {
+      add("error", `flow.${i}`, `Unbekannter Bildschirmtyp "${screen.type}".`);
+      return;
+    }
+    if (screen.type === "video" && screen.source?.kind === "file" && !screen.source.name) {
+      add("error", `flow.${i}.source`, "Video-Bildschirm ohne Dateinamen.");
+    }
+    if (screen.type === "video" && screen.source?.kind === "url" && !screen.source.url) {
+      add("error", `flow.${i}.source`, "Video-Bildschirm ohne Adresse.");
+    }
+  });
+
+  if (!cfg.puzzles.length) add("warn", "puzzles", "Die Party enthält kein einziges Rätsel.");
+
+  cfg.puzzles.forEach((puzzle, i) => {
+    const def = puzzleDef(puzzle.type);
+    if (!def) {
+      add("error", `puzzles.${i}`, `Unbekannter Rätseltyp "${puzzle.type}".`);
+      return;
+    }
+    if (!puzzle.title?.trim()) add("warn", `puzzles.${i}.title`, "Rätsel ohne Titel.");
+    for (const issue of def.validate(puzzle) || []) {
+      add(issue.level || "error", `puzzles.${i}.${issue.field}`, issue.msg);
+    }
+  });
+
+  /* Verwaiste und fehlende Assets finden. */
+  const used = new Set();
+  collectAssetRefs(cfg, used);
+  for (const ref of used) {
+    if (!cfg.assets[ref]) add("error", "assets", `Das Bild "${ref}" fehlt in der Datei.`);
+  }
+  for (const key of Object.keys(cfg.assets)) {
+    if (!used.has(key)) add("warn", "assets", `Das Bild "${key}" wird nirgends verwendet.`);
+  }
+
+  const size = estimateSize(cfg);
+  if (size > 15 * 1024 * 1024) {
+    add("error", "assets", `Die Party wäre ${fmtBytes(size)} groß. Über 15 MB laden Tablets sie nicht mehr zuverlässig.`);
+  } else if (size > 8 * 1024 * 1024) {
+    add("warn", "assets", `Die Party ist mit ${fmtBytes(size)} recht groß. Bilder kleiner einstellen?`);
+  }
+
+  if (!/^\d{4}$/.test(String(cfg.parent?.pin || ""))) {
+    add("error", "parent.pin", "Die Eltern-PIN muss vierstellig sein.");
+  }
+
+  return issues;
+}
+
+function collectAssetRefs(cfg, into = new Set()) {
+  const walk = (node) => {
+    if (Array.isArray(node)) return node.forEach(walk);
+    if (node && typeof node === "object") {
+      for (const [key, value] of Object.entries(node)) {
+        if (key === "image" && typeof value === "string" && value) into.add(value);
+        else walk(value);
+      }
+    }
+  };
+  walk(cfg.flow);
+  walk(cfg.puzzles);
+  return into;
+}
+
+/* Grobe Groessenschaetzung des Exports: JSON plus Player-Grundlast. */
+function estimateSize(cfg) {
+  const json = JSON.stringify(cfg).length;
+  return json + 120 * 1024;
+}
+
+function fmtBytes(n) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} kB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/* ---- src/shared/license.js ---- */
+/* Lizenzpruefung.
+   Erzeugt werden Token serverseitig (license-fn/worker.js) nach der
+   Stripe-Zahlung, geprueft werden sie hier - vollstaendig im Browser,
+   offline, ohne Konto und ohne Datenbank.
+
+   Format:  PARTY-1.<base64url(payload)>.<base64url(signatur)>
+   Signiert wird der String "PARTY-1.<base64url(payload)>".
+
+   ACHTUNG: Der hier eingetragene Schluessel ist ein DEMO-Schluessel,
+   dessen privater Teil in license-fn/DEMO-SCHLUESSEL.txt liegt und
+   damit oeffentlich ist. Vor dem ersten echten Verkauf mit
+   `node tools/keygen.mjs` ein eigenes Paar erzeugen.                */
+
+const PUBLIC_KEY_B64 = "YKGumZJcPlreMIBcSwE6yiCqjpR0pWgWtfO+CDZC/oA=";
+
+const FEATURES = {
+  nobadge: "Wasserzeichen entfernt",
+  pdf: "Begleitmaterial als PDF",
+  unlimited: "Beliebig viele Rätsel",
+  branding: "Eigener Titel und eigenes Symbol",
+};
+
+/* In der Gratis-Version begrenzt, damit der Kauf nicht nur
+   "Nervigkeit abkaufen" ist. Siehe KONZEPT.md, Abschnitt 8.2. */
+const FREE_PUZZLE_LIMIT = 4;
+
+function b64urlDecode(str) {
+  const pad = str.length % 4 === 0 ? "" : "=".repeat(4 - (str.length % 4));
+  const b64 = str.replace(/-/g, "+").replace(/_/g, "/") + pad;
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function b64urlEncode(bytes) {
+  let bin = "";
+  for (const byte of bytes) bin += String.fromCharCode(byte);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function parseToken(token) {
+  if (typeof token !== "string") return null;
+  const parts = token.trim().split(".");
+  if (parts.length !== 3 || parts[0] !== "PARTY-1") return null;
+  try {
+    const payload = JSON.parse(new TextDecoder().decode(b64urlDecode(parts[1])));
+    return { payload, signed: `${parts[0]}.${parts[1]}`, signature: b64urlDecode(parts[2]) };
+  } catch {
+    return null;
+  }
+}
+
+/* Prueft Signatur und Bindung an die Party.
+   Ergebnis: { ok, reason, payload, features }                      */
+async function verifyLicense(token, { partyId } = {}) {
+  const fail = (reason) => ({ ok: false, reason, payload: null, features: [] });
+  if (!token) return fail("keine Lizenz hinterlegt");
+
+  const parsed = parseToken(token);
+  if (!parsed) return fail("Lizenzschlüssel unlesbar");
+
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle) return fail("Browser unterstützt keine Signaturprüfung");
+
+  let valid = false;
+  try {
+    const key = await subtle.importKey(
+      "raw", b64urlDecode(PUBLIC_KEY_B64.replace(/\+/g, "-").replace(/\//g, "_")),
+      { name: "Ed25519" }, false, ["verify"],
+    );
+    valid = await subtle.verify(
+      { name: "Ed25519" }, key, parsed.signature,
+      new TextEncoder().encode(parsed.signed),
+    );
+  } catch (err) {
+    return fail(`Signatur nicht prüfbar (${err.name || "Fehler"})`);
+  }
+  if (!valid) return fail("Signatur stimmt nicht");
+
+  const payload = parsed.payload;
+  if (payload.exp && Date.now() / 1000 > payload.exp) return fail("Lizenz abgelaufen");
+  if (partyId && payload.pid && payload.pid !== "*" && payload.pid !== partyId) {
+    return fail("Lizenz gehört zu einer anderen Party");
+  }
+
+  return { ok: true, reason: "gültig", payload, features: payload.feat || [] };
+}
+
+function hasFeature(licenseState, feature) {
+  return !!licenseState?.ok && (licenseState.features || []).includes(feature);
+}
+
+/* ---- src/player/player.js ---- */
+/* Die Spiel-Engine.
+   Bekommt ein Party-Dokument und fuehrt es aus. Sie kennt keinen
+   Editor - aber einen Bearbeitungsmodus, in dem sie zusaetzlich
+   Datenpfade im Markup mitliefert (data-bind). Dadurch ist die
+   Vorschau im Editor exakt das, was spaeter exportiert wird.       */
+
+
+
+
+
+const P = {
+  cfg: null,
+  mode: "play",          // "play" | "edit"
+  view: { kind: "flow", idx: 0 },
+  solved: new Set(),
+  root: null,
+  stage: null,
+  license: { ok: false, features: [] },
+  renderHooks: [],
+};
+
+/* ---------------- Spielstand ---------------- */
+
+function storageKey() {
+  return `party.progress.${P.cfg?.id || "unbekannt"}`;
+}
+
+function saveProgress() {
+  if (P.mode === "edit") return;   // Testen soll den echten Stand nicht anfassen
+  try {
+    localStorage.setItem(storageKey(), JSON.stringify({ v: 1, solved: [...P.solved] }));
+  } catch { /* privater Modus, voller Speicher: kein Grund abzustuerzen */ }
+}
+
+function loadProgress() {
+  if (P.mode === "edit") return;
+  try {
+    const raw = JSON.parse(localStorage.getItem(storageKey()) || "null");
+    if (raw && Array.isArray(raw.solved)) P.solved = new Set(raw.solved);
+  } catch { /* ignorieren */ }
+}
+
+function resetProgress() {
+  P.solved = new Set();
+  try { localStorage.removeItem(storageKey()); } catch { /* ignorieren */ }
+  gotoFlow(0);
+}
+
+/* ---------------- Ton und Konfetti ---------------- */
+
+let audioCtx = null;
+function tone(freqs, duration = 0.12) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    freqs.forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      const start = audioCtx.currentTime + i * duration;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.2, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(start);
+      osc.stop(start + duration + 0.02);
+    });
+  } catch { /* ohne Ton ist auch gut */ }
+}
+
+function confetti() {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const colors = ["var(--ok)", "var(--amber)", "var(--primary)", "var(--info)"];
+  for (let i = 0; i < 40; i++) {
+    const bit = document.createElement("i");
+    Object.assign(bit.style, {
+      position: "fixed", zIndex: "70", left: `${50 + (Math.random() - 0.5) * 40}%`,
+      top: "45%", width: "9px", height: "14px", borderRadius: "2px",
+      background: colors[i % colors.length], pointerEvents: "none",
+    });
+    document.body.appendChild(bit);
+    const dx = (Math.random() - 0.5) * 520;
+    const dy = -160 - Math.random() * 220;
+    bit.animate(
+      [
+        { transform: "translate(0,0) rotate(0deg)", opacity: 1 },
+        { transform: `translate(${dx}px, ${dy}px) rotate(${Math.random() * 540}deg)`, opacity: 1, offset: 0.45 },
+        { transform: `translate(${dx * 1.3}px, 70vh) rotate(${Math.random() * 900}deg)`, opacity: 0 },
+      ],
+      { duration: 1500 + Math.random() * 700, easing: "cubic-bezier(.2,.7,.4,1)" },
+    ).onfinish = () => bit.remove();
+  }
+}
+
+/* ---------------- Navigation ---------------- */
+
+function gotoFlow(idx) {
+  const max = (P.cfg?.flow?.length || 1) - 1;
+  P.view = { kind: "flow", idx: Math.max(0, Math.min(max, idx)) };
+  render();
+}
+
+function gotoPuzzle(idx) {
+  P.view = { kind: "puzzle", idx };
+  render();
+}
+
+function overviewIndex() {
+  const i = P.cfg.flow.findIndex((s) => s.type === "overview");
+  return i < 0 ? 0 : i;
+}
+
+function backToOverview() {
+  gotoFlow(overviewIndex());
+}
+
+function allSolved() {
+  return P.cfg.puzzles.length > 0 && P.cfg.puzzles.every((p) => P.solved.has(p.id));
+}
+
+/* ---------------- Bildschirme ---------------- */
+
+function screenStart(screen, path) {
+  return h("section", { class: "screen screen--center is-active" },
+    h("div", { class: "eyebrow", bind: `${path}.eyebrow`, text: screen.eyebrow || "Mission" }),
+    h("h1", { bind: `${path}.headline`, text: screen.headline || "" }),
+    h("p", { class: "sub", bind: `${path}.sub`, text: screen.sub || "" }),
+    h("button", {
+      class: "btn btn--primary btn--big", type: "button",
+      bind: `${path}.cta`, text: screen.cta || "Start",
+      onclick: () => { tone([520, 700]); gotoFlow(P.view.idx + 1); },
+    }),
+    badgeHero(),
+  );
+}
+
+function embedUrl(url) {
+  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{6,})/);
+  if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}`;
+  const vimeo = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
+  return null;
+}
+
+function screenVideo(screen, path) {
+  const source = screen.source || { kind: "none" };
+  const next = () => gotoFlow(P.view.idx + 1);
+
+  let media;
+  if (source.kind === "url" && source.url) {
+    const embed = embedUrl(source.url);
+    media = embed
+      ? h("iframe", { class: "party-video", src: embed, allow: "autoplay; fullscreen",
+                      allowfullscreen: true, frameborder: "0", style: { height: "50vh", border: "0" } })
+      : h("video", { class: "party-video", src: source.url, controls: true, playsinline: true });
+  } else if (source.kind === "file" && source.name && P.mode === "edit") {
+    /* Im Editor liegt die Videodatei praktisch nie neben dem Player.
+       Statt bei jedem Neuzeichnen einen 404 zu erzeugen, zeigen wir
+       den Platzhalter - abgespielt wird im Export.                 */
+    media = h("div", { class: "video-missing" },
+      h("p", { text: `🎬 ${source.name}` }),
+      h("p", { class: "opt-note", text: "Wird beim Export abgespielt, sobald die Datei daneben liegt." }));
+  } else if (source.kind === "file" && source.name) {
+    const video = h("video", {
+      class: "party-video", src: source.name, playsinline: true, controls: true,
+      autoplay: screen.autoplay !== false, muted: screen.autoplay !== false,
+    });
+    video.addEventListener("ended", () => { if (P.mode === "play") next(); });
+    video.addEventListener("error", () => {
+      video.replaceWith(h("div", { class: "video-missing" },
+        h("p", { text: `Die Videodatei „${source.name}" liegt nicht neben dieser Seite.` }),
+        h("p", { class: "opt-note", text: "Der Ablauf läuft trotzdem weiter." })));
+    });
+    media = video;
+  } else {
+    media = h("div", { class: "video-missing", text: "Für diesen Bildschirm ist noch kein Video hinterlegt." });
+  }
+
+  return h("section", { class: "screen screen--center is-active" },
+    h("div", { class: "video-wrap" },
+      media,
+      h("div", { class: "row" },
+        h("button", {
+          class: "btn btn--primary", type: "button",
+          bind: `${path}.cta`, text: screen.cta || "Weiter", onclick: next,
+        }),
+        screen.skippable !== false && P.mode === "play"
+          ? h("button", { class: "btn btn--ghost", type: "button", text: "Überspringen", onclick: next })
+          : null,
+      ),
+    ),
+    badge(),
+  );
+}
+
+function screenOverview(screen, path) {
+  const solvedCount = P.cfg.puzzles.filter((p) => P.solved.has(p.id)).length;
+  const linear = screen.mode === "linear";
+
+  const cards = P.cfg.puzzles.map((puzzle, i) => {
+    const isSolved = P.solved.has(puzzle.id);
+    const locked = linear && !isSolved && P.cfg.puzzles.slice(0, i).some((p) => !P.solved.has(p.id));
+    return h("button", {
+      class: `puzzle-card ${isSolved ? "is-solved" : ""} ${locked ? "is-locked" : ""}`,
+      type: "button", bind: `puzzles.${i}`, disabled: locked,
+      onclick: () => { if (!locked) gotoPuzzle(i); },
+    },
+      h("span", { class: "nr", text: isSolved ? "✓" : String(puzzle.nr ?? i + 1) }),
+      h("span", { text: puzzle.title || `Rätsel ${i + 1}` }),
+    );
+  });
+
+  const done = allSolved();
+  return h("section", { class: "screen is-active" },
+    h("h2", { bind: `${path}.headline`, text: screen.headline || "" }),
+    h("div", { class: "progress", text: `${solvedCount} von ${P.cfg.puzzles.length} gelöst` }),
+    h("div", { class: "overview-grid" }, cards),
+    h("button", {
+      class: `btn ${done ? "btn--ok btn--big" : "btn--ghost"}`, type: "button",
+      bind: `${path}.finalCta`, text: screen.finalCta || "Zum Abschluss",
+      disabled: !done && P.mode === "play",
+      onclick: () => gotoFlow(P.view.idx + 1),
+    }),
+    badge(),
+  );
+}
+
+function screenPuzzle(puzzle, i) {
+  const def = puzzleDef(puzzle.type);
+  const path = `puzzles.${i}`;
+
+  if (!def) {
+    return h("section", { class: "screen screen--center is-active" },
+      h("h2", { text: `Unbekannter Rätseltyp „${puzzle.type}"` }),
+      h("button", { class: "btn", type: "button", text: "Zurück", onclick: backToOverview }),
+    );
+  }
+
+  const instance = def.render({ puzzle, path, cfg: P.cfg, mode: P.mode });
+  const feedback = h("div", { class: "feedback" });
+  const isSolved = P.solved.has(puzzle.id);
+
+  const markSolved = () => {
+    P.solved.add(puzzle.id);
+    saveProgress();
+    tone([660, 880, 1100]);
+    confetti();
+    feedback.className = "feedback is-ok";
+    feedback.textContent = "Richtig!";
+    setTimeout(() => { if (P.view.kind === "puzzle") backToOverview(); }, 1200);
+  };
+
+  const onCheck = () => {
+    if (def.check(puzzle, instance.getAnswer())) {
+      markSolved();
+    } else {
+      tone([220, 180], 0.16);
+      feedback.className = "feedback is-no shake";
+      feedback.textContent = "Noch nicht ganz — probiert es nochmal.";
+      setTimeout(() => feedback.classList.remove("shake"), 420);
+    }
+  };
+
+  return h("section", { class: "screen is-active" },
+    h("div", { class: "eyebrow", text: `Rätsel ${puzzle.nr ?? i + 1}` }),
+    h("h2", { bind: `${path}.title`, text: puzzle.title || "" }),
+    h("div", { class: "puzzle-wrap" },
+      puzzle.prompt ? h("p", { class: "prompt", bind: `${path}.prompt`, text: puzzle.prompt }) : null,
+      instance.node,
+      puzzle.hint ? h("div", { class: "hint-box", bind: `${path}.hint`, text: `💡 ${puzzle.hint}` }) : null,
+      feedback,
+      h("div", { class: "row" },
+        h("button", { class: "btn btn--ghost", type: "button", text: "Zurück", onclick: backToOverview }),
+        h("button", { class: "btn btn--primary btn--big", type: "button", text: "Prüfen", onclick: onCheck }),
+        isSolved ? h("span", { class: "progress", text: "bereits gelöst" }) : null,
+      ),
+    ),
+    badge(),
+  );
+}
+
+function screenFinal(screen, path) {
+  const video = screen.video || { kind: "none" };
+  const reveal = h("div", { class: "reveal", bind: `${path}.reveal`, text: screen.reveal || "" });
+
+  return h("section", { class: "screen screen--center is-active" },
+    h("h1", { bind: `${path}.headline`, text: screen.headline || "" }),
+    h("p", { class: "sub", bind: `${path}.text`, text: screen.text || "" }),
+    video.kind === "file" && video.name && P.mode === "edit"
+      ? h("div", { class: "video-missing", style: { maxWidth: "620px" } },
+          h("p", { text: `🎬 ${video.name}` }),
+          h("p", { class: "opt-note", text: "Wird beim Export abgespielt, sobald die Datei daneben liegt." }))
+      : video.kind === "file" && video.name
+        ? h("video", { class: "party-video", src: video.name, controls: true, playsinline: true,
+                       style: { maxWidth: "620px" } })
+        : null,
+    screen.reveal
+      ? h("div", null,
+          h("div", { class: "eyebrow", bind: `${path}.revealLabel`, text: screen.revealLabel || "Lösungswort" }),
+          reveal)
+      : null,
+    P.mode === "play"
+      ? h("button", { class: "btn btn--ghost", type: "button", text: "Von vorn beginnen", onclick: resetProgress })
+      : null,
+    badgeHero(),
+  );
+}
+
+/* ---------------- Wasserzeichen ---------------- */
+
+function brandingOff() {
+  return P.license.ok && (P.license.features || []).includes("nobadge");
+}
+
+function badge() {
+  if (brandingOff()) return null;
+  return h("div", { class: "badge", text: "erstellt mit Party-Baukasten" });
+}
+
+function badgeHero() {
+  if (brandingOff()) return null;
+  return h("div", { class: "badge badge--hero", text: "erstellt mit Party-Baukasten" });
+}
+
+/* ---------------- Eltern-Konsole ---------------- */
+
+function parentSheet() {
+  const sheet = h("div", { class: "sheet", hidden: true });
+  let entry = "";
+
+  const dots = h("div", { class: "pin-dots" });
+  const msg = h("div", { class: "pin-msg" });
+  const paintDots = () => {
+    dots.replaceChildren(...[0, 1, 2, 3].map((i) => h("i", { class: i < entry.length ? "on" : "" })));
+  };
+
+  const pinStep = h("div", null,
+    h("div", { class: "eyebrow", text: "🔒 Gesperrt" }),
+    h("h2", { class: "sheet-title", text: "PIN eingeben" }),
+    dots, msg,
+    h("div", { class: "pinpad" },
+      ["1", "2", "3", "4", "5", "6", "7", "8", "9", "←", "0", "C"].map((label) =>
+        h("button", { class: "btn key", type: "button", text: label, onclick: () => {
+          if (label === "←") entry = entry.slice(0, -1);
+          else if (label === "C") entry = "";
+          else if (entry.length < 4) entry += label;
+          paintDots();
+          if (entry.length === 4) {
+            if (entry === String(P.cfg.parent?.pin || "1337")) { entry = ""; msg.textContent = ""; paintDots(); showMenu(); }
+            else { msg.textContent = "Falsche PIN"; entry = ""; setTimeout(paintDots, 250); }
+          }
+        } })),
+    ),
+    h("button", { class: "btn btn--ghost", type: "button", text: "Abbrechen", onclick: () => close() }),
+  );
+
+  const menuStep = h("div", { hidden: true });
+
+  const buildMenu = () => {
+    const jumpButtons = P.cfg.flow.map((screen, i) =>
+      h("button", { class: "btn opt", type: "button",
+        text: `${i + 1}. ${screenLabel(screen)}`,
+        onclick: () => { close(); gotoFlow(i); } }));
+
+    const solveButtons = P.cfg.puzzles.map((puzzle, i) =>
+      h("button", { class: `btn opt ${P.solved.has(puzzle.id) ? "is-picked" : ""}`, type: "button",
+        text: `${P.solved.has(puzzle.id) ? "✓" : "○"} ${puzzle.title}`,
+        onclick: () => {
+          if (P.solved.has(puzzle.id)) P.solved.delete(puzzle.id);
+          else P.solved.add(puzzle.id);
+          saveProgress();
+          buildMenu();
+        } }));
+
+    clear(menuStep);
+    menuStep.append(
+      h("div", { class: "eyebrow", text: "Einstellungen" }),
+      h("h2", { class: "sheet-title", text: "Für Erwachsene" }),
+      h("button", { class: "btn opt", type: "button", text: "⛶ Vollbild umschalten", onclick: toggleFullscreen }),
+      h("div", { class: "sheet-sep", text: "Direkt anspringen" }),
+      ...jumpButtons,
+      P.cfg.parent?.allowMarkSolved !== false ? h("div", { class: "sheet-sep", text: "Als gelöst markieren" }) : null,
+      ...(P.cfg.parent?.allowMarkSolved !== false ? solveButtons : []),
+      h("div", { class: "sheet-sep", text: "Spielstand" }),
+      h("button", { class: "btn opt", type: "button", text: "↺ Spiel komplett zurücksetzen",
+        onclick: () => { close(); resetProgress(); } }),
+      h("button", { class: "btn btn--amber", type: "button", text: "Fertig", onclick: () => close() }),
+    );
+  };
+
+  const showMenu = () => { pinStep.hidden = true; menuStep.hidden = false; buildMenu(); };
+  const open = () => { entry = ""; paintDots(); msg.textContent = ""; pinStep.hidden = false; menuStep.hidden = true; sheet.hidden = false; };
+  const close = () => { sheet.hidden = true; render(); };
+
+  sheet.append(h("div", { class: "sheet-card" }, pinStep, menuStep));
+  sheet.addEventListener("click", (event) => { if (event.target === sheet) close(); });
+  paintDots();
+  return { node: sheet, open };
+}
+
+function screenLabel(screen) {
+  const labels = { start: "Start", video: "Video", overview: "Rätselübersicht", final: "Abschluss" };
+  return screen.headline || labels[screen.type] || screen.type;
+}
+
+function toggleFullscreen() {
+  const doc = document;
+  if (!doc.fullscreenElement) doc.documentElement.requestFullscreen?.().catch(() => {});
+  else doc.exitFullscreen?.().catch(() => {});
+}
+
+/* ---------------- Rendern ---------------- */
+
+function render() {
+  if (!P.cfg || !P.stage) return;
+  clear(P.stage);
+
+  let node;
+  if (P.view.kind === "puzzle") {
+    const puzzle = P.cfg.puzzles[P.view.idx];
+    node = puzzle ? screenPuzzle(puzzle, P.view.idx) : screenOverview(P.cfg.flow[overviewIndex()], `flow.${overviewIndex()}`);
+  } else {
+    const idx = Math.max(0, Math.min(P.cfg.flow.length - 1, P.view.idx));
+    const screen = P.cfg.flow[idx];
+    const path = `flow.${idx}`;
+    if (!screen) node = h("section", { class: "screen screen--center is-active" }, h("h2", { text: "Kein Bildschirm im Ablauf." }));
+    else if (screen.type === "start") node = screenStart(screen, path);
+    else if (screen.type === "video") node = screenVideo(screen, path);
+    else if (screen.type === "overview") node = screenOverview(screen, path);
+    else if (screen.type === "final") node = screenFinal(screen, path);
+    else node = h("section", { class: "screen screen--center is-active" }, h("h2", { text: `Unbekannter Bildschirm „${screen.type}"` }));
+  }
+
+  P.stage.appendChild(node);
+  for (const hook of P.renderHooks) hook();
+}
+
+function onRender(callback) {
+  P.renderHooks.push(callback);
+}
+
+/* ---------------- Start ---------------- */
+
+async function mountPlayer(root, config, options = {}) {
+  P.root = root;
+  P.mode = options.mode === "edit" ? "edit" : "play";
+  P.cfg = normalize(config);
+
+  document.body.classList.toggle("mode-edit", P.mode === "edit");
+  applyTheme(document.documentElement, P.cfg.theme);
+  document.title = P.cfg.meta?.title || "Rätsel-Party";
+
+  P.stage = h("div", { class: "stage" });
+  const parent = parentSheet();
+  const topbar = h("div", { class: "topbar" },
+    h("div", { class: "spacer" }),
+    h("button", { class: "icon-btn", type: "button", title: "Einstellungen",
+      text: "⚙", onclick: () => parent.open() }),
+  );
+
+  clear(root);
+  root.append(P.stage, topbar, parent.node);
+
+  loadProgress();
+  render();
+
+  /* Lizenz wird nachtraeglich geprueft: bis das Ergebnis da ist,
+     bleibt das Wasserzeichen stehen. Fehlschlag heisst Badge. */
+  await refreshLicense();
+
+  return P;
+}
+
+/* Fuer den Editor: neues Dokument einspielen, Ansicht behalten. */
+function setConfig(config, { rerender = true } = {}) {
+  if (!config) return;
+  const previousToken = P.cfg?.branding?.license ?? null;
+  P.cfg = normalize(config);
+  applyTheme(document.documentElement, P.cfg.theme);
+  document.title = P.cfg.meta?.title || "Rätsel-Party";
+  if (rerender) render();
+
+  /* Wird im Editor freigeschaltet, aendert sich nur das Dokument.
+     Ohne erneute Pruefung bliebe das Wasserzeichen in der Vorschau
+     stehen, obwohl der Export schon sauber waere. */
+  const token = P.cfg.branding?.license ?? null;
+  if (token !== previousToken) refreshLicense();
+}
+
+async function refreshLicense() {
+  const token = P.cfg.branding?.license ?? null;
+  P.license = await verifyLicense(token, { partyId: P.cfg.id });
+  if (P.cfg.branding?.license === token) render();   // zwischenzeitlich schon wieder geaendert?
+}
+
+function setMode(mode) {
+  P.mode = mode === "edit" ? "edit" : "play";
+  document.body.classList.toggle("mode-edit", P.mode === "edit");
+  render();
+}
+
+/* ---- src/player/editmode.js ---- */
+/* Bearbeitungsmodus des Players.
+   Der Player laeuft im Editor in einem iframe. Dieses Modul macht
+   aus ihm eine bearbeitbare Flaeche:
+     - Klick waehlt aus, statt zu spielen
+     - Textknoten werden direkt beschreibbar (contenteditable)
+     - jede Aenderung geht als {path, value} an den Editor
+
+   Zustandshaltung bleibt ausschliesslich beim Editor. Der Player
+   schickt Absichten und bekommt fertige Zustaende zurueck -
+   eine Einbahnstrasse, die Synchronisationsfehler ausschliesst.   */
+
+
+const EDITABLE_TAGS = new Set(["H1", "H2", "H3", "P", "SPAN", "DIV", "BUTTON", "LI"]);
+
+let selectedPath = null;
+let editId = 0;
+let pendingEditId = null;
+let overlay = null;
+
+function send(message) {
+  if (window.parent === window) return;
+  window.parent.postMessage({ __party: true, ...message }, "*");
+}
+
+/* ---- Auswahlrahmen ------------------------------------------------
+   Als eigene Ebene ueber dem Inhalt, nicht als Rahmen am Element:
+   sonst verschiebt die Auswahl das Layout.                          */
+
+function ensureOverlay() {
+  if (overlay) return overlay;
+  overlay = document.createElement("div");
+  overlay.className = "sel-overlay";
+  overlay.hidden = true;
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+function paintOverlay() {
+  const box = ensureOverlay();
+  const el = selectedPath ? document.querySelector(`[data-bind="${cssEscape(selectedPath)}"]`) : null;
+  if (!el) { box.hidden = true; return; }
+  const rect = el.getBoundingClientRect();
+  Object.assign(box.style, {
+    left: `${rect.left - 3}px`, top: `${rect.top - 3}px`,
+    width: `${rect.width + 6}px`, height: `${rect.height + 6}px`,
+  });
+  box.hidden = false;
+}
+
+function cssEscape(value) {
+  return String(value).replace(/["\\]/g, "\\$&");
+}
+
+/* ---- Auswahl und Inline-Bearbeitung ------------------------------ */
+
+function isTextEditable(el, path) {
+  if (!EDITABLE_TAGS.has(el.tagName)) return false;
+  if (typeof getPath(P.cfg, path) !== "string") return false;
+  return [...el.childNodes].every((n) => n.nodeType === Node.TEXT_NODE);
+}
+
+function stopEditing() {
+  for (const el of document.querySelectorAll('[contenteditable="true"]')) {
+    el.removeAttribute("contenteditable");
+  }
+}
+
+function select(path, { startEditing = false } = {}) {
+  stopEditing();
+  selectedPath = path;
+  paintOverlay();
+  if (!path) return;
+
+  const el = document.querySelector(`[data-bind="${cssEscape(path)}"]`);
+  if (el && startEditing && isTextEditable(el, path)) {
+    el.setAttribute("contenteditable", "true");
+    el.focus();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+}
+
+function onInput(event) {
+  const el = event.target.closest?.("[data-bind]");
+  if (!el || el.getAttribute("contenteditable") !== "true") return;
+  pendingEditId = ++editId;
+  send({ type: "patch", path: el.dataset.bind, value: el.textContent, editId: pendingEditId });
+}
+
+/* Aus Word eingefuegter Text bringt sonst Markup mit. */
+function onPaste(event) {
+  const el = event.target.closest?.('[contenteditable="true"]');
+  if (!el) return;
+  event.preventDefault();
+  const text = (event.clipboardData || window.clipboardData).getData("text/plain");
+  document.execCommand("insertText", false, text.replace(/\s+/g, " "));
+}
+
+function onClickCapture(event) {
+  if (P.mode !== "edit") return;
+  const target = event.target;
+  if (target.closest?.('[contenteditable="true"]')) return;   // Cursor setzen erlauben
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const el = target.closest?.("[data-bind]");
+  if (!el) { select(null); send({ type: "click", path: null }); return; }
+
+  const path = el.dataset.bind;
+  select(path, { startEditing: true });
+  send({ type: "click", path });
+}
+
+function onDblClickCapture(event) {
+  if (P.mode !== "edit") return;
+  const el = event.target.closest?.("[data-bind]");
+  const match = el?.dataset.bind?.match(/^puzzles\.(\d+)$/);
+  if (match) {
+    event.preventDefault();
+    event.stopPropagation();
+    gotoPuzzle(Number(match[1]));
+  }
+}
+
+function onKeyDown(event) {
+  if (event.key === "Escape") { stopEditing(); select(null); }
+  if (event.key === "Enter" && document.activeElement?.getAttribute("contenteditable") === "true") {
+    event.preventDefault();
+    document.activeElement.blur();
+    stopEditing();
+  }
+}
+
+/* ---- Nachrichten vom Editor -------------------------------------- */
+
+function onMessage(event) {
+  const msg = event.data;
+  if (!msg || msg.__party !== true) return;
+
+  switch (msg.type) {
+    case "state": {
+      /* Echo der eigenen Inline-Eingabe: Zustand uebernehmen, aber
+         NICHT neu zeichnen - sonst springt der Cursor. */
+      const isEcho = msg.echo != null && msg.echo === pendingEditId;
+      setConfig(msg.config, { rerender: !isEcho });
+      if (!isEcho) { pendingEditId = null; restoreSelection(); }
+      break;
+    }
+    case "mode":
+      stopEditing();
+      setMode(msg.mode);
+      break;
+    case "goto":
+      stopEditing();
+      if (msg.view?.kind === "puzzle") gotoPuzzle(msg.view.idx);
+      else gotoFlow(msg.view?.idx ?? 0);
+      break;
+    case "select":
+      /* Der Editor spiegelt jede Auswahl zurueck - auch die, die
+         gerade hier entstanden ist. Ohne diese Bremse wuerde das
+         Echo die eben begonnene Inline-Bearbeitung sofort wieder
+         beenden und der erste Tastendruck ginge verloren. */
+      if (msg.path === selectedPath) { paintOverlay(); break; }
+      restoreSelectionTo(msg.path);
+      break;
+    case "rerender":
+      render();
+      break;
+    default:
+      break;
+  }
+}
+
+function restoreSelection() {
+  if (selectedPath) paintOverlay();
+}
+
+function restoreSelectionTo(path) {
+  /* Falls der Pfad auf einem anderen Bildschirm liegt, dorthin
+     wechseln - sonst waehlt der Editor ins Leere. */
+  const puzzleMatch = String(path || "").match(/^puzzles\.(\d+)/);
+  const flowMatch = String(path || "").match(/^flow\.(\d+)/);
+  if (puzzleMatch && P.view.kind !== "puzzle") gotoPuzzle(Number(puzzleMatch[1]));
+  else if (flowMatch && (P.view.kind !== "flow" || P.view.idx !== Number(flowMatch[1]))) {
+    gotoFlow(Number(flowMatch[1]));
+  }
+  select(path);
+}
+
+/* ---- Einhaengen --------------------------------------------------- */
+
+function installEditMode() {
+  document.addEventListener("click", onClickCapture, true);
+  document.addEventListener("dblclick", onDblClickCapture, true);
+  document.addEventListener("input", onInput, true);
+  document.addEventListener("paste", onPaste, true);
+  document.addEventListener("keydown", onKeyDown, true);
+  window.addEventListener("message", onMessage);
+  window.addEventListener("resize", paintOverlay);
+  window.addEventListener("scroll", paintOverlay, true);
+
+  onRender(() => {
+    requestAnimationFrame(() => {
+      paintOverlay();
+      send({ type: "view", view: { ...P.view } });
+    });
+  });
+
+  window.addEventListener("error", (event) => {
+    send({ type: "error", message: event.message, source: event.filename, line: event.lineno });
+  });
+
+  send({ type: "ready" });
+}
+
+/* ---- src/player/boot.js ---- */
+/* Einstiegspunkt des Players.
+   Woher die Party kommt, haengt davon ab, wie der Player laeuft:
+
+     1. Export        -> JSON steckt im Dokument (#party-config)
+     2. Editor-iframe -> der Editor schickt den Zustand per Nachricht
+     3. Direktaufruf  -> ?src=…json laedt eine Datei zum Ausprobieren
+*/
+
+
+
+function inlineConfig() {
+  const tag = document.getElementById("party-config");
+  if (!tag) return null;
+  const raw = tag.textContent.trim();
+  if (!raw || raw.startsWith("__PARTY")) return null;    // unersetzter Platzhalter
+  try {
+    return migrate(JSON.parse(raw));
+  } catch (err) {
+    console.error("Party-Daten im Dokument sind unlesbar:", err);
+    return null;
+  }
+}
+
+async function loadFromUrl(url) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return migrate(await response.json());
+  } catch (err) {
+    console.error(`Party-Datei ${url} nicht ladbar:`, err);
+    return null;
+  }
+}
+
+async function boot() {
+  const params = new URLSearchParams(location.search);
+  const mode = params.get("mode") === "edit" ? "edit" : "play";
+  const root = document.getElementById("app");
+
+  let cfg = inlineConfig();
+  if (!cfg && params.get("src")) cfg = await loadFromUrl(params.get("src"));
+  if (!cfg) cfg = emptyParty(mode === "edit" ? "Neue Rätsel-Party" : "Beispiel-Party");
+
+  await mountPlayer(root, cfg, { mode });
+  if (mode === "edit") installEditMode();
+}
+
+boot();
+})();
+</script>
+</body>
+</html>

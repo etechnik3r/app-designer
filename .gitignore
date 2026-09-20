@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+*.log
+
+# Die gebaute Player-Vorlage liegt bewusst MIT im Repository:
+# so laeuft der Ordner sofort, auch ohne Node-Werkzeugkette.
+# Zum Neubauen: npm run build
