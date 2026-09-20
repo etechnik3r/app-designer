@@ -35,6 +35,10 @@
   --no: #ff6a5a;
   --radius: 20px;
   --font-scale: 1;
+  --bg-image: none;
+  --bg-image-size: auto;
+  --grid-opacity: 1;
+  --bg-dim: 0;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --mono: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
 }
@@ -46,9 +50,19 @@ body {
   font-family: var(--sans);
   font-size: calc(17px * var(--font-scale));
   color: var(--ink);
+  /* Vier Schichten uebereinander, oberste zuerst: ein Abdunkeln fuers
+     eigene Hintergrundbild, das Bild bzw. der Farbverlauf selbst, der
+     alte Lichtschein und ganz unten die einfarbige Grundfarbe. Sind
+     Bild/Verlauf nicht gesetzt, ist die jeweilige Schicht "none" und
+     faellt weg - die urspruengliche Optik bleibt unveraendert.       */
   background:
+    linear-gradient(rgba(0, 0, 0, var(--bg-dim, 0)), rgba(0, 0, 0, var(--bg-dim, 0))),
+    var(--bg-image, none),
     radial-gradient(circle at 20% 0%, rgba(255, 255, 255, .06), transparent 45%),
     var(--bg);
+  background-size: auto, var(--bg-image-size, auto), auto, auto;
+  background-position: center, center, center, center;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
   overflow: hidden;
   user-select: none;
   touch-action: manipulation;
@@ -61,6 +75,7 @@ body::before {
     linear-gradient(var(--grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid) 1px, transparent 1px);
   background-size: 44px 44px;
+  opacity: var(--grid-opacity, 1);
 }
 
 /* #app braucht eine eigene Hoehe: ohne sie faellt .stage auf 0
@@ -540,14 +555,54 @@ function themeTokens(theme) {
   return { ...preset.tokens, ...(theme?.tokens || {}) };
 }
 
-/* Setzt die Tokens auf ein Element (im Player: <html>). */
-function applyTheme(rootEl, theme) {
+/* Vorlagen fuer den Farbverlauf-Hintergrund. Eigene Farben bleiben
+   trotzdem moeglich - das sind nur die Startpunkte im Design-Reiter. */
+const GRADIENT_PRESETS = [
+  { label: "Labor-Lila", from: "#241c5e", to: "#5a48c9", angle: 140 },
+  { label: "Sonnenuntergang", from: "#ff7a45", to: "#c7396b", angle: 135 },
+  { label: "Ozean", from: "#0b3d5c", to: "#1fb6b0", angle: 135 },
+  { label: "Dschungel", from: "#0e3b2b", to: "#4cb573", angle: 130 },
+  { label: "Zuckerwatte", from: "#5c1f4e", to: "#ff8ad1", angle: 140 },
+  { label: "Sternennacht", from: "#04060d", to: "#1c2c52", angle: 160 },
+];
+
+/* Setzt die Tokens auf ein Element (im Player: <html>). assets wird
+   nur fuer ein Hintergrundbild gebraucht - dort steckt die Data-URL. */
+function applyTheme(rootEl, theme, assets) {
   const tokens = themeTokens(theme);
   for (const key of TOKEN_KEYS) {
     if (tokens[key] != null) rootEl.style.setProperty(`--${key}`, tokens[key]);
   }
   const scale = Number(theme?.fontScale) || 1;
   rootEl.style.setProperty("--font-scale", String(scale));
+  applyBackground(rootEl, theme?.background, assets);
+}
+
+function applyBackground(rootEl, background, assets) {
+  const style = rootEl.style;
+  const kind = background?.kind || "pattern";
+
+  if (kind === "gradient" && background.gradient) {
+    const { from, to, angle } = background.gradient;
+    style.setProperty("--bg-image", `linear-gradient(${Number.isFinite(angle) ? angle : 135}deg, ${from || "#241c5e"}, ${to || "#5a48c9"})`);
+    style.setProperty("--bg-image-size", "auto");
+    style.setProperty("--grid-opacity", "0");
+    style.setProperty("--bg-dim", "0");
+  } else if (kind === "image" && background.image && assets?.[background.image]?.data) {
+    /* Anfuehrungszeichen um die Data-URL: sonst reisst ein "#" darin
+       (kommt in manchen Base64-Auffuellungen zufaellig vor) die URL ab. */
+    style.setProperty("--bg-image", `url("${assets[background.image].data}")`);
+    style.setProperty("--bg-image-size", "cover");
+    style.setProperty("--grid-opacity", "0");
+    style.setProperty("--bg-dim", String(background.dim ?? 0.35));
+  } else {
+    /* "pattern" oder ein Bild, das (noch) fehlt: die bisherige Optik -
+       Punktraster auf der Grundfarbe, kein Hintergrund haengt in der Luft. */
+    style.setProperty("--bg-image", "none");
+    style.setProperty("--bg-image-size", "auto");
+    style.setProperty("--grid-opacity", "1");
+    style.setProperty("--bg-dim", "0");
+  }
 }
 
 /* ---- Kontrastpruefung (WCAG 2.1) --------------------------------
@@ -1344,7 +1399,8 @@ function emptyParty(title = "Neue Rätsel-Party") {
     schemaVersion: SCHEMA_VERSION,
     id: newId("p"),
     meta: { title, language: "de", createdAt: new Date().toISOString() },
-    theme: { preset: "labor", tokens: {}, fontScale: 1, iconSeed: "🔬" },
+    theme: { preset: "labor", tokens: {}, fontScale: 1, iconSeed: "🔬",
+             background: { kind: "pattern", gradient: null, image: null, dim: 0.35 } },
     flow: [defaultScreen("start"), defaultScreen("overview"), defaultScreen("final")],
     puzzles: [defaultPuzzle("choice", 1)],
     assets: {},
@@ -1396,6 +1452,7 @@ function normalize(cfg) {
     branding: { ...base.branding, ...(cfg.branding || {}) },
   };
   out.theme.tokens = out.theme.tokens || {};
+  out.theme.background = { kind: "pattern", gradient: null, image: null, dim: 0.35, ...(out.theme.background || {}) };
   out.flow = out.flow.map((s, i) => ({ ...s, id: s.id || `s${i}`, type: s.type || "start" }));
   out.puzzles = out.puzzles.map((p, i) => ({
     ...p,
@@ -1486,6 +1543,11 @@ function collectAssetRefs(cfg, into = new Set()) {
   };
   walk(cfg.flow);
   walk(cfg.puzzles);
+  /* Das Hintergrundbild der Party ist auch nur eine Asset-Referenz -
+     sonst haelt es die "unbenutzte Bilder"-Aufraeumung fuer Muell. */
+  if (cfg.theme?.background?.kind === "image" && cfg.theme.background.image) {
+    into.add(cfg.theme.background.image);
+  }
   return into;
 }
 
@@ -2046,7 +2108,7 @@ async function mountPlayer(root, config, options = {}) {
   P.cfg = normalize(config);
 
   document.body.classList.toggle("mode-edit", P.mode === "edit");
-  applyTheme(document.documentElement, P.cfg.theme);
+  applyTheme(document.documentElement, P.cfg.theme, P.cfg.assets);
   document.title = P.cfg.meta?.title || "Rätsel-Party";
 
   P.stage = h("div", { class: "stage" });
@@ -2075,7 +2137,7 @@ function setConfig(config, { rerender = true } = {}) {
   if (!config) return;
   const previousToken = P.cfg?.branding?.license ?? null;
   P.cfg = normalize(config);
-  applyTheme(document.documentElement, P.cfg.theme);
+  applyTheme(document.documentElement, P.cfg.theme, P.cfg.assets);
   document.title = P.cfg.meta?.title || "Rätsel-Party";
   if (rerender) render();
 
@@ -2258,8 +2320,17 @@ function onMessage(event) {
   switch (msg.type) {
     case "state": {
       /* Echo der eigenen Inline-Eingabe: Zustand uebernehmen, aber
-         NICHT neu zeichnen - sonst springt der Cursor. */
-      const isEcho = msg.echo != null && msg.echo === pendingEditId;
+         NICHT neu zeichnen - sonst springt der Cursor.
+         Wichtig: auf JEDES Echo reagieren, nicht nur auf das zur
+         zuletzt gesendeten editId. Bei schnellem Tippen ueberholen
+         sich sonst zwei Zustandsantworten - die aeltere traf hier
+         ein, nachdem lokal schon eine neuere Taste gezaehlt wurde,
+         der Vergleich schlug fehl und ein Neuzeichnen mitten im
+         Tippen riss die Eingabe samt Fokus weg. Jede Antwort mit
+         einer editId stammt zwangslaeufig von einem eigenen Patch -
+         eine Fremdaenderung (Rueckgaengig, Inspektor, Theme) schickt
+         nie eine editId mit.                                        */
+      const isEcho = msg.echo != null;
       setConfig(msg.config, { rerender: !isEcho });
       if (!isEcho) { pendingEditId = null; restoreSelection(); }
       break;

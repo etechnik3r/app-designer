@@ -59,7 +59,8 @@ export function emptyParty(title = "Neue Rätsel-Party") {
     schemaVersion: SCHEMA_VERSION,
     id: newId("p"),
     meta: { title, language: "de", createdAt: new Date().toISOString() },
-    theme: { preset: "labor", tokens: {}, fontScale: 1, iconSeed: "🔬" },
+    theme: { preset: "labor", tokens: {}, fontScale: 1, iconSeed: "🔬",
+             background: { kind: "pattern", gradient: null, image: null, dim: 0.35 } },
     flow: [defaultScreen("start"), defaultScreen("overview"), defaultScreen("final")],
     puzzles: [defaultPuzzle("choice", 1)],
     assets: {},
@@ -111,6 +112,7 @@ export function normalize(cfg) {
     branding: { ...base.branding, ...(cfg.branding || {}) },
   };
   out.theme.tokens = out.theme.tokens || {};
+  out.theme.background = { kind: "pattern", gradient: null, image: null, dim: 0.35, ...(out.theme.background || {}) };
   out.flow = out.flow.map((s, i) => ({ ...s, id: s.id || `s${i}`, type: s.type || "start" }));
   out.puzzles = out.puzzles.map((p, i) => ({
     ...p,
@@ -201,6 +203,11 @@ export function collectAssetRefs(cfg, into = new Set()) {
   };
   walk(cfg.flow);
   walk(cfg.puzzles);
+  /* Das Hintergrundbild der Party ist auch nur eine Asset-Referenz -
+     sonst haelt es die "unbenutzte Bilder"-Aufraeumung fuer Muell. */
+  if (cfg.theme?.background?.kind === "image" && cfg.theme.background.image) {
+    into.add(cfg.theme.background.image);
+  }
   return into;
 }
 

@@ -104,14 +104,54 @@ export function themeTokens(theme) {
   return { ...preset.tokens, ...(theme?.tokens || {}) };
 }
 
-/* Setzt die Tokens auf ein Element (im Player: <html>). */
-export function applyTheme(rootEl, theme) {
+/* Vorlagen fuer den Farbverlauf-Hintergrund. Eigene Farben bleiben
+   trotzdem moeglich - das sind nur die Startpunkte im Design-Reiter. */
+export const GRADIENT_PRESETS = [
+  { label: "Labor-Lila", from: "#241c5e", to: "#5a48c9", angle: 140 },
+  { label: "Sonnenuntergang", from: "#ff7a45", to: "#c7396b", angle: 135 },
+  { label: "Ozean", from: "#0b3d5c", to: "#1fb6b0", angle: 135 },
+  { label: "Dschungel", from: "#0e3b2b", to: "#4cb573", angle: 130 },
+  { label: "Zuckerwatte", from: "#5c1f4e", to: "#ff8ad1", angle: 140 },
+  { label: "Sternennacht", from: "#04060d", to: "#1c2c52", angle: 160 },
+];
+
+/* Setzt die Tokens auf ein Element (im Player: <html>). assets wird
+   nur fuer ein Hintergrundbild gebraucht - dort steckt die Data-URL. */
+export function applyTheme(rootEl, theme, assets) {
   const tokens = themeTokens(theme);
   for (const key of TOKEN_KEYS) {
     if (tokens[key] != null) rootEl.style.setProperty(`--${key}`, tokens[key]);
   }
   const scale = Number(theme?.fontScale) || 1;
   rootEl.style.setProperty("--font-scale", String(scale));
+  applyBackground(rootEl, theme?.background, assets);
+}
+
+function applyBackground(rootEl, background, assets) {
+  const style = rootEl.style;
+  const kind = background?.kind || "pattern";
+
+  if (kind === "gradient" && background.gradient) {
+    const { from, to, angle } = background.gradient;
+    style.setProperty("--bg-image", `linear-gradient(${Number.isFinite(angle) ? angle : 135}deg, ${from || "#241c5e"}, ${to || "#5a48c9"})`);
+    style.setProperty("--bg-image-size", "auto");
+    style.setProperty("--grid-opacity", "0");
+    style.setProperty("--bg-dim", "0");
+  } else if (kind === "image" && background.image && assets?.[background.image]?.data) {
+    /* Anfuehrungszeichen um die Data-URL: sonst reisst ein "#" darin
+       (kommt in manchen Base64-Auffuellungen zufaellig vor) die URL ab. */
+    style.setProperty("--bg-image", `url("${assets[background.image].data}")`);
+    style.setProperty("--bg-image-size", "cover");
+    style.setProperty("--grid-opacity", "0");
+    style.setProperty("--bg-dim", String(background.dim ?? 0.35));
+  } else {
+    /* "pattern" oder ein Bild, das (noch) fehlt: die bisherige Optik -
+       Punktraster auf der Grundfarbe, kein Hintergrund haengt in der Luft. */
+    style.setProperty("--bg-image", "none");
+    style.setProperty("--bg-image-size", "auto");
+    style.setProperty("--grid-opacity", "1");
+    style.setProperty("--bg-dim", "0");
+  }
 }
 
 /* ---- Kontrastpruefung (WCAG 2.1) --------------------------------

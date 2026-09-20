@@ -450,7 +450,7 @@ export async function mountPlayer(root, config, options = {}) {
   P.cfg = normalize(config);
 
   document.body.classList.toggle("mode-edit", P.mode === "edit");
-  applyTheme(document.documentElement, P.cfg.theme);
+  applyTheme(document.documentElement, P.cfg.theme, P.cfg.assets);
   document.title = P.cfg.meta?.title || "Rätsel-Party";
 
   P.stage = h("div", { class: "stage" });
@@ -479,7 +479,7 @@ export function setConfig(config, { rerender = true } = {}) {
   if (!config) return;
   const previousToken = P.cfg?.branding?.license ?? null;
   P.cfg = normalize(config);
-  applyTheme(document.documentElement, P.cfg.theme);
+  applyTheme(document.documentElement, P.cfg.theme, P.cfg.assets);
   document.title = P.cfg.meta?.title || "Rätsel-Party";
   if (rerender) render();
 
