@@ -159,8 +159,17 @@ function onMessage(event) {
   switch (msg.type) {
     case "state": {
       /* Echo der eigenen Inline-Eingabe: Zustand uebernehmen, aber
-         NICHT neu zeichnen - sonst springt der Cursor. */
-      const isEcho = msg.echo != null && msg.echo === pendingEditId;
+         NICHT neu zeichnen - sonst springt der Cursor.
+         Wichtig: auf JEDES Echo reagieren, nicht nur auf das zur
+         zuletzt gesendeten editId. Bei schnellem Tippen ueberholen
+         sich sonst zwei Zustandsantworten - die aeltere traf hier
+         ein, nachdem lokal schon eine neuere Taste gezaehlt wurde,
+         der Vergleich schlug fehl und ein Neuzeichnen mitten im
+         Tippen riss die Eingabe samt Fokus weg. Jede Antwort mit
+         einer editId stammt zwangslaeufig von einem eigenen Patch -
+         eine Fremdaenderung (Rueckgaengig, Inspektor, Theme) schickt
+         nie eine editId mit.                                        */
+      const isEcho = msg.echo != null;
       setConfig(msg.config, { rerender: !isEcho });
       if (!isEcho) { pendingEditId = null; restoreSelection(); }
       break;

@@ -4,13 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Party-Baukasten</title>
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="dark light">
+<script>
+/* Vor dem ersten Anstrich setzen - sonst blitzt beim Laden kurz das
+   falsche Farbschema auf, wenn "hell" gemerkt war. */
+try {
+  var t = localStorage.getItem("party.editor.theme");
+  if (t === "light") document.documentElement.dataset.editorTheme = "light";
+} catch { /* egal */ }
+</script>
 <link rel="stylesheet" href="src/editor/editor.css">
 </head>
 <body>
 
 <header class="toolbar">
   <span class="brand" title="Party-Baukasten">🎉 Baukasten</span>
+  <button class="ver" id="btnVersion" type="button" title="Was ist neu?">v0.0.0</button>
   <input class="title" id="partyTitle" type="text" aria-label="Name der Party">
 
   <span class="seg">
@@ -30,6 +39,7 @@
   <span class="spacer"></span>
 
   <span class="saved" id="savedState">—</span>
+  <button class="tbtn" id="btnEditorTheme" type="button" title="Hell/Dunkel (Editor-Oberfläche)">🌙</button>
   <button class="tbtn" id="btnSettings" type="button" title="Einstellungen (PIN)">⚙</button>
   <button class="tbtn" id="btnProjects" type="button">Projekte</button>
   <button class="tbtn" id="btnCheck" type="button">Prüfen</button>
@@ -45,7 +55,7 @@
 
   <main class="preview">
     <div class="device device--tablet" id="device">
-      <iframe id="preview" title="Vorschau" src="src/player/index.html?mode=edit"></iframe>
+      <iframe id="preview" title="Vorschau" src="src/player/index.html?mode=edit&v=0.3.0"></iframe>
     </div>
   </main>
 
@@ -60,6 +70,6 @@
   </aside>
 </div>
 
-<script type="module" src="src/editor/main.js"></script>
+<script type="module" src="src/editor/main.js?v=0.3.0"></script>
 </body>
 </html>

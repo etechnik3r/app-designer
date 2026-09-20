@@ -18,6 +18,25 @@
   color-scheme: dark;
 }
 
+/* Heller Modus fuer die Editor-Oberflaeche selbst - unabhaengig vom
+   Design der gebauten Party, das immer im iframe lebt. Umschaltbar
+   ueber den Knopf in der Werkzeugleiste, gemerkt in localStorage.   */
+:root[data-editor-theme="light"] {
+  --e-bg: #eef1f7;
+  --e-panel: #ffffff;
+  --e-panel-2: #f2f4f9;
+  --e-edge: #d7deea;
+  --e-ink: #161b24;
+  --e-muted: #5b6577;
+  --e-accent: #2f5fd0;
+  --e-ok: #188a56;
+  --e-warn: #a3690a;
+  --e-no: #c73326;
+  color-scheme: light;
+}
+:root[data-editor-theme="light"] .tbtn.is-on,
+:root[data-editor-theme="light"] .tbtn--primary { color: #ffffff; }
+
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 body {
@@ -44,6 +63,12 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .toolbar .spacer { flex: 1; }
 .brand { font-weight: 800; letter-spacing: -.02em; color: var(--e-accent); white-space: nowrap; }
 .saved { color: var(--e-muted); font-size: 12px; font-family: var(--e-mono); }
+.ver {
+  font-family: var(--e-mono); font-size: 11px; color: var(--e-muted);
+  background: transparent; border: 1px solid var(--e-edge); border-radius: 999px;
+  padding: 2px 9px; cursor: pointer; white-space: nowrap;
+}
+.ver:hover { border-color: var(--e-accent); color: var(--e-ink); }
 
 .tbtn {
   background: var(--e-panel-2); border: 1px solid var(--e-edge);

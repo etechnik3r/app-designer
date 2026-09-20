@@ -24,6 +24,10 @@
   --no: #ff6a5a;
   --radius: 20px;
   --font-scale: 1;
+  --bg-image: none;
+  --bg-image-size: auto;
+  --grid-opacity: 1;
+  --bg-dim: 0;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --mono: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
 }
@@ -35,9 +39,19 @@ body {
   font-family: var(--sans);
   font-size: calc(17px * var(--font-scale));
   color: var(--ink);
+  /* Vier Schichten uebereinander, oberste zuerst: ein Abdunkeln fuers
+     eigene Hintergrundbild, das Bild bzw. der Farbverlauf selbst, der
+     alte Lichtschein und ganz unten die einfarbige Grundfarbe. Sind
+     Bild/Verlauf nicht gesetzt, ist die jeweilige Schicht "none" und
+     faellt weg - die urspruengliche Optik bleibt unveraendert.       */
   background:
+    linear-gradient(rgba(0, 0, 0, var(--bg-dim, 0)), rgba(0, 0, 0, var(--bg-dim, 0))),
+    var(--bg-image, none),
     radial-gradient(circle at 20% 0%, rgba(255, 255, 255, .06), transparent 45%),
     var(--bg);
+  background-size: auto, var(--bg-image-size, auto), auto, auto;
+  background-position: center, center, center, center;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
   overflow: hidden;
   user-select: none;
   touch-action: manipulation;
@@ -50,6 +64,7 @@ body::before {
     linear-gradient(var(--grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid) 1px, transparent 1px);
   background-size: 44px 44px;
+  opacity: var(--grid-opacity, 1);
 }
 
 /* #app braucht eine eigene Hoehe: ohne sie faellt .stage auf 0

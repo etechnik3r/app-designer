@@ -24,6 +24,7 @@ import { emptyParty, migrate, validateParty, estimateSize, fmtBytes } from "../s
 import { verifyLicense, FREE_PUZZLE_LIMIT } from "../shared/license.js";
 import { loadDemoParty } from "./demo.js";
 import { DEMOS, loadDemo } from "./demos.js";
+import { APP_VERSION, CHANGELOG } from "../shared/version.js";
 
 /* Die Einstellungen sind mit einer PIN geschuetzt. Sie sind bewusst
    knapp gehalten - hier wachsen spaeter die weiteren Schalter. */
@@ -420,6 +421,43 @@ function onBuyBlocked() {
   }).then((result) => { if (result === "buy") openBuyDialog(); });
 }
 
+/* ---------------- Editor-Oberfläche: hell/dunkel ---------------- */
+
+const EDITOR_THEME_KEY = "party.editor.theme";
+
+function currentEditorTheme() {
+  return document.documentElement.dataset.editorTheme === "light" ? "light" : "dark";
+}
+
+function paintEditorThemeButton() {
+  const light = currentEditorTheme() === "light";
+  const button = el("btnEditorTheme");
+  button.textContent = light ? "☀️" : "🌙";
+  button.title = light ? "Zu dunklem Editor wechseln" : "Zu hellem Editor wechseln";
+}
+
+function toggleEditorTheme() {
+  const next = currentEditorTheme() === "light" ? "dark" : "light";
+  if (next === "light") document.documentElement.dataset.editorTheme = "light";
+  else delete document.documentElement.dataset.editorTheme;
+  try { localStorage.setItem(EDITOR_THEME_KEY, next); } catch { /* egal */ }
+  paintEditorThemeButton();
+}
+
+/* ---------------- Version und Verlauf ---------------- */
+
+function showChangelog() {
+  const body = h("div", { style: { display: "flex", flexDirection: "column", gap: "4px" } },
+    CHANGELOG.map((entry) =>
+      h("div", null,
+        h("div", { class: "group-label", text: `Version ${entry.version} · ${entry.date}` }),
+        h("ul", { style: { margin: "2px 0 14px", paddingLeft: "20px", lineHeight: "1.6" } },
+          entry.notes.map((note) => h("li", { text: note }))),
+      )),
+  );
+  modal({ title: "Was ist neu", body, wide: true, actions: [{ label: "Schließen", value: null, primary: true }] });
+}
+
 /* ---------------- Werkzeugleiste ---------------- */
 
 function wireToolbar() {
@@ -438,6 +476,10 @@ function wireToolbar() {
 
   el("btnUndo").addEventListener("click", () => undo());
   el("btnRedo").addEventListener("click", () => redo());
+  el("btnVersion").textContent = `v${APP_VERSION}`;
+  el("btnVersion").addEventListener("click", showChangelog);
+  el("btnEditorTheme").addEventListener("click", toggleEditorTheme);
+  paintEditorThemeButton();
   el("btnSettings").addEventListener("click", settingsDialog);
   el("btnProjects").addEventListener("click", projectsDialog);
   el("btnCheck").addEventListener("click", () => checkParty());
@@ -519,6 +561,8 @@ function maybeShowWelcome() {
       "Auf einen Text tippen und direkt losschreiben — die Überschrift, die Frage, jede Antwort."),
     point("Rechts: die Details",
       "Hier legst du die Antwort-Schaltflächen an (eine Zeile je Antwort) und wählst darunter die richtige Lösung für „Prüfen“."),
+    point("Rechts oben: „Design“",
+      "Farben, Vorlagen, Schriftgröße — und der Hintergrund: Punktmuster, Farbverlauf oder ein eigenes Bild."),
   );
 
   modal({ title: "Willkommen im Party-Baukasten", body, wide: true,
