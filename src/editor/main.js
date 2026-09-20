@@ -63,8 +63,11 @@ function setupBridge() {
          Inspektor bei "flow.1.cta" nichts Sinnvolles. */
       setSelection(path);
     },
-    onView: (view) => { store.view = view; },
+    onView: (view) => { store.view = view; renderFlow(); },
     onError: (msg) => toast(`Fehler in der Vorschau: ${msg.message}`, true),
+    onHint: () => {
+      if (store.mode !== "play") toast("▶ Zum Ausprobieren oben auf „Testen“ umschalten.");
+    },
   });
 }
 
@@ -76,8 +79,12 @@ function renderRightPane() {
   else renderInspector(pane);
 }
 
-function renderAll() {
+function renderFlow() {
   renderFlowStrip(el("flowstrip"), { onBuyPrompt: onBuyBlocked });
+}
+
+function renderAll() {
+  renderFlow();
   renderRightPane();
   ui.title.value = store.cfg.meta.title || "";
   el("btnUndo").disabled = !canUndo();
@@ -485,6 +492,40 @@ async function startUp() {
   await newProject(await loadDemoParty());
 }
 
+/* ---------------- Erste Hilfe ---------------- */
+
+/* Einmaliger Wegweiser. Die haeufigste Verwirrung: warum "Prüfen"
+   beim Bearbeiten nichts tut und wo die richtige Antwort hingehoert. */
+const WELCOME_KEY = "party.editor.welcomed";
+
+function maybeShowWelcome() {
+  let seen = false;
+  try { seen = localStorage.getItem(WELCOME_KEY) === "1"; } catch { /* egal */ }
+  if (seen) return;
+
+  const point = (title, text) =>
+    h("div", { class: "item", style: { cursor: "default" } },
+      h("span", { class: "label" },
+        h("div", { text: title }),
+        h("div", { class: "type", text })));
+
+  const body = h("div", { style: { display: "flex", flexDirection: "column", gap: "8px" } },
+    h("p", { text: "So funktioniert der Baukasten in vier Handgriffen:" }),
+    point("✎ Bearbeiten  ·  ▶ Testen (oben)",
+      "Im Bearbeiten-Modus änderst du Inhalte. Zum Ausprobieren — Antworten antippen, „Prüfen“, weiter — oben auf ▶ Testen umschalten."),
+    point("Links: der Ablauf und die Rätsel",
+      "Bildschirme und Rätsel anklicken zum Öffnen, mit „+ Bildschirm“ bzw. „+ Rätsel“ neue anlegen."),
+    point("Mitte: die Vorschau",
+      "Auf einen Text tippen und direkt losschreiben — die Überschrift, die Frage, jede Antwort."),
+    point("Rechts: die Details",
+      "Hier legst du die Antwort-Schaltflächen an (eine Zeile je Antwort) und wählst darunter die richtige Lösung für „Prüfen“."),
+  );
+
+  modal({ title: "Willkommen im Party-Baukasten", body, wide: true,
+    actions: [{ label: "Los geht’s", value: null, primary: true }] });
+  try { localStorage.setItem(WELCOME_KEY, "1"); } catch { /* egal */ }
+}
+
 async function init() {
   wireToolbar();
   setupBridge();
@@ -495,8 +536,8 @@ async function init() {
 
     if (reason === "mode") { bridge.setMode(store.mode); syncModeButtons(); return; }
     if (reason === "device") { syncModeButtons(); return; }
-    if (reason === "view") { bridge.goto(store.view); return; }
-    if (reason === "selection") { bridge.select(store.selection); renderRightPane(); return; }
+    if (reason === "view") { bridge.goto(store.view); renderFlow(); return; }
+    if (reason === "selection") { bridge.select(store.selection); renderRightPane(); renderFlow(); return; }
     if (reason === "saved") { updateSavedLabel(); return; }
 
     /* Zustandsaenderung: Player zuerst, damit die Vorschau nicht
@@ -510,6 +551,7 @@ async function init() {
   syncTabs();
   syncModeButtons();
   renderAll();
+  maybeShowWelcome();
 
   /* Schluessel aus der Rueckleitung von Stripe uebernehmen. */
   const token = new URLSearchParams(location.search).get("license");

@@ -35,6 +35,9 @@ export function createBridge(iframe, handlers = {}) {
       case "view":
         handlers.onView?.(msg.view);
         break;
+      case "hint":
+        handlers.onHint?.(msg.text);
+        break;
       case "error":
         handlers.onError?.(msg);
         break;

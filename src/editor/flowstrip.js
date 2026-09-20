@@ -136,7 +136,7 @@ export function renderFlowStrip(container, { onBuyPrompt } = {}) {
       icon: def?.icon || "❓",
       label: `${puzzle.nr ?? index + 1}. ${puzzle.title}`,
       type: def?.label || puzzle.type,
-      active: selection?.startsWith(`puzzles.${index}`),
+      active: selection === `puzzles.${index}` || String(selection || "").startsWith(`puzzles.${index}.`),
       onSelect: () => { setSelection(`puzzles.${index}`); setView({ kind: "puzzle", idx: index }); },
       actions: [
         miniButton("▲", "nach oben", index === 0, () =>
